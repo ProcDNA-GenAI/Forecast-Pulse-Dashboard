@@ -7,9 +7,9 @@ import { useDashboard } from "@/components/dashboard/DashboardProvider";
 import { CardHeader, DashboardCard } from "@/components/dashboard/DashboardCard";
 import { DataTag, Legend, LegendItem, MiniButton } from "@/components/dashboard/DashboardControls";
 import { rgba, useChartColors, type ChartColors } from "@/components/charts/chartSetup";
-import { getProductMixSeries, prescriberBreadthDepth, productMixLabels, productMixPatientPool } from "@/lib/dashboard/hardcoded-series";
-import { takeForBucket } from "@/lib/dashboard/formatters";
-import type { ComparisonPoint, InflowPoint, TrendPoint } from "@/lib/dashboard/types";
+import { getProductMixSeries, prescriberBreadthDepth, productMixLabels, productMixPatientPool } from "@/utils/dashboard/hardcoded-series";
+import { takeForBucket } from "@/utils/dashboard/formatters";
+import type { ComparisonPoint, InflowPoint, TrendPoint } from "@/utils/dashboard/types";
 
 function colorFromToken(colors: ChartColors, token: keyof ChartColors): string {
   return colors[token];

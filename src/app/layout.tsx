@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { ChatAssistant } from "@/components/chat/ChatAssistant";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardProvider } from "@/components/dashboard/DashboardProvider";
 
@@ -18,8 +19,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en">
       <body>
         <DashboardProvider>
-          <DashboardHeader />
-          <main className="mx-auto max-w-[1340px] px-4 pb-16 pt-5 sm:px-6">{children}</main>
+          <ChatAssistant>
+            <DashboardHeader />
+            <main className="mx-auto max-w-[1340px] px-4 pb-16 pt-5 sm:px-6">{children}</main>
+          </ChatAssistant>
         </DashboardProvider>
       </body>
     </html>

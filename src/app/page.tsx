@@ -1,5 +1,5 @@
 import { ExecutiveDashboard } from "@/components/executive/ExecutiveDashboard";
-import { loadDashboardData } from "@/lib/dashboard/workbook";
+import { loadDashboardData } from "@/utils/dashboard/workbook";
 
 export const dynamic = "force-dynamic";
 

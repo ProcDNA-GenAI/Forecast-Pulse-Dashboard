@@ -11,8 +11,8 @@ import {
   ProductMixCard,
   TrendCard,
 } from "./MarketIndicatorCards";
-import { formatPercent, latestComparison, latestPoint } from "@/lib/dashboard/formatters";
-import type { DashboardData } from "@/lib/dashboard/types";
+import { formatPercent, latestComparison, latestPoint } from "@/utils/dashboard/formatters";
+import type { DashboardData } from "@/utils/dashboard/types";
 
 function IndicatorBand({
   title,

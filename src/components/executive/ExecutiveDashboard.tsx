@@ -14,7 +14,7 @@ import {
   formatPercentPoints,
   formatSignedPercent,
   latestPoint,
-} from "@/lib/dashboard/formatters";
+} from "@/utils/dashboard/formatters";
 import {
   aggregateSegmentMovements,
   assumptionCounts,
@@ -22,8 +22,8 @@ import {
   largestSegmentMovers,
   marketPointForYear,
   type SegmentMovement,
-} from "@/lib/dashboard/selectors";
-import type { Assumption, DashboardData, SegmentGroup } from "@/lib/dashboard/types";
+} from "@/utils/dashboard/selectors";
+import type { Assumption, DashboardData, SegmentGroup } from "@/utils/dashboard/types";
 
 type SegmentFilter = "all" | SegmentGroup;
 type MovementMode = "sub" | "grp";

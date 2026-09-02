@@ -1,5 +1,5 @@
 import { MarketIndicatorsDashboard } from "@/components/indicators/MarketIndicatorsDashboard";
-import { loadDashboardData } from "@/lib/dashboard/workbook";
+import { loadDashboardData } from "@/utils/dashboard/workbook";
 
 export const dynamic = "force-dynamic";
 

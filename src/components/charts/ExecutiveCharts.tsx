@@ -3,8 +3,8 @@
 import { Bar, Line } from "react-chartjs-2";
 import type { ChartData, ChartOptions, TooltipItem } from "chart.js";
 import { rgba, useChartColors } from "./chartSetup";
-import type { MarketPoint } from "@/lib/dashboard/types";
-import type { SegmentMovement } from "@/lib/dashboard/selectors";
+import type { MarketPoint } from "@/utils/dashboard/types";
+import type { SegmentMovement } from "@/utils/dashboard/selectors";
 
 export function MarketTrajectoryChart({ points }: { points: MarketPoint[] }) {
   const colors = useChartColors();
