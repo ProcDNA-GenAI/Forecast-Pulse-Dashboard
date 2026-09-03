@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArcElement,
   BarController,
   BarElement,
   CategoryScale,
@@ -8,6 +9,7 @@ import {
   Filler,
   Legend,
   LinearScale,
+  DoughnutController,
   LineController,
   LineElement,
   PointElement,
@@ -16,12 +18,14 @@ import {
 import { useEffect, useState } from "react";
 
 ChartJS.register(
+  ArcElement,
   BarController,
   BarElement,
   CategoryScale,
   Filler,
   Legend,
   LinearScale,
+  DoughnutController,
   LineController,
   LineElement,
   PointElement,

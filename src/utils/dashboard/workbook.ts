@@ -11,7 +11,10 @@ import type {
   DashboardData,
   InflowPoint,
   MarketPoint,
+  NpsPoint,
   PatientSegment,
+  PrescriberPoint,
+  ProductMixPoint,
   SegmentGroup,
   TrendPoint,
 } from "./types";
@@ -98,7 +101,7 @@ function findHeaderRow(
   throw new Error(`Could not find headers "${expected}" in sheet "${worksheet.name}".`);
 }
 
-function excelDateLabel(value: unknown, context: string): string {
+function excelDate(value: unknown, context: string): Date {
   let date: Date;
 
   if (value instanceof Date) {
@@ -108,7 +111,14 @@ function excelDateLabel(value: unknown, context: string): string {
     date = new Date(Date.UTC(1899, 11, 30) + serial * 86_400_000);
   }
 
-  return date.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
+  return date;
+}
+
+function excelDateLabel(value: unknown, context: string): string {
+  const date = excelDate(value, context);
+  const month = date.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
+  const year = String(date.getUTCFullYear()).slice(-2);
+  return `${month} '${year}`;
 }
 
 function launchMonthLabel(value: unknown, context: string): string {
@@ -198,18 +208,106 @@ function readSegments(worksheet: ExcelJS.Worksheet): PatientSegment[] {
   return result;
 }
 
-function readNpsShare(worksheet: ExcelJS.Worksheet): ComparisonPoint[] {
-  const headerRow = findHeaderRow(worksheet, [[2, "Month"], [10, "Modelled Curve"]]);
-  const result: ComparisonPoint[] = [];
+function readNpsShare(worksheet: ExcelJS.Worksheet): NpsPoint[] {
+  const headerRow = findHeaderRow(worksheet, [
+    [2, "Month"],
+    [10, "Modelled Curve"],
+    [14, "Forecast NPS Count"],
+    [15, "Actual NPS Count"],
+  ]);
+  const result: NpsPoint[] = [];
 
   for (let row = headerRow + 1; row <= worksheet.rowCount; row += 1) {
     const actual = optionalNumber(cellValue(worksheet, row, 11));
     if (actual === null) break;
 
     result.push({
-      label: launchMonthLabel(cellValue(worksheet, row, 2), `${worksheet.name}!B${row}`),
+      label: excelDateLabel(cellValue(worksheet, row, 2), `${worksheet.name}!B${row}`),
       forecast: numberValue(cellValue(worksheet, row, 10), `${worksheet.name}!J${row}`),
       actual,
+      forecastCount: numberValue(cellValue(worksheet, row, 14), `${worksheet.name}!N${row}`),
+      actualCount: numberValue(cellValue(worksheet, row, 15), `${worksheet.name}!O${row}`),
+    });
+  }
+
+  return result;
+}
+
+function readProductMix(worksheet: ExcelJS.Worksheet): ProductMixPoint[] {
+  const headerRow = findHeaderRow(worksheet, [[1, "Month"], [2, "Total advanced LLT patients (M)"]]);
+  const products: Array<{ column: number; product: string }> = [];
+
+  for (let column = 3; column <= worksheet.columnCount; column += 1) {
+    const header = cellValue(worksheet, headerRow, column);
+    if (typeof header !== "string" || header.length === 0) break;
+    products.push({
+      column,
+      product: header.endsWith(" share") ? header.slice(0, -6) : header,
+    });
+  }
+
+  const result: ProductMixPoint[] = [];
+  for (let row = headerRow + 1; row <= worksheet.rowCount; row += 1) {
+    if (cellValue(worksheet, row, 1) === null) break;
+    const shares = products.map(({ column, product }) => ({
+      product,
+      share: numberValue(cellValue(worksheet, row, column), `${worksheet.name}!${worksheet.getColumn(column).letter}${row}`),
+    }));
+
+    result.push({
+      label: excelDateLabel(cellValue(worksheet, row, 1), `${worksheet.name}!A${row}`),
+      totalPatientsMillions: numberValue(cellValue(worksheet, row, 2), `${worksheet.name}!B${row}`),
+      shares: normalizePercentageShares(shares, `${worksheet.name}!${row}`),
+    });
+  }
+
+  return result;
+}
+
+function normalizePercentageShares<T extends { share: number }>(shares: T[], rowLabel: string): T[] {
+  const total = shares.reduce((sum, item) => sum + item.share, 0);
+
+  if (Math.abs(total - 1) <= 0.000001) {
+    return shares;
+  }
+
+  if (total <= 0 || Math.abs(total - 1) > 0.02) {
+    throw new Error(`Product mix percentages for ${rowLabel} must total close to 100%.`);
+  }
+
+  return shares.map((item) => ({
+    ...item,
+    share: item.share / total,
+  }));
+}
+
+function readPrescribers(worksheet: ExcelJS.Worksheet): PrescriberPoint[] {
+  const headerRow = findHeaderRow(worksheet, [[1, "Specialty"], [2, "Writers"], [3, "TRx per writer"]]);
+  const result: PrescriberPoint[] = [];
+
+  for (let row = headerRow + 1; row <= worksheet.rowCount; row += 1) {
+    const specialty = cellValue(worksheet, row, 1);
+    if (typeof specialty !== "string" || specialty.length === 0) break;
+    result.push({
+      specialty,
+      writers: numberValue(cellValue(worksheet, row, 2), `${worksheet.name}!B${row}`),
+      prescriptionsPerWriter: numberValue(cellValue(worksheet, row, 3), `${worksheet.name}!C${row}`),
+    });
+  }
+
+  return result;
+}
+
+function readCompliance(worksheet: ExcelJS.Worksheet): ComparisonPoint[] {
+  const headerRow = findHeaderRow(worksheet, [[1, "Month"], [2, "Forecast"], [3, "Actuals"]]);
+  const result: ComparisonPoint[] = [];
+
+  for (let row = headerRow + 1; row <= worksheet.rowCount; row += 1) {
+    if (cellValue(worksheet, row, 1) === null) break;
+    result.push({
+      label: excelDateLabel(cellValue(worksheet, row, 1), `${worksheet.name}!A${row}`),
+      forecast: numberValue(cellValue(worksheet, row, 2), `${worksheet.name}!B${row}`),
+      actual: numberValue(cellValue(worksheet, row, 3), `${worksheet.name}!C${row}`),
     });
   }
 
@@ -291,7 +389,7 @@ function readDemandAndPersistency(worksheet: ExcelJS.Worksheet): {
 
 function mapAssumptionStatus(sourceStatus: string): AssumptionStatus {
   if (sourceStatus === "Monitor") return "Watch";
-  if (sourceStatus === "Revalidate") return "Off Track";
+  if (sourceStatus === "Revalidate") return "Take Action";
   return "On Track";
 }
 
@@ -299,17 +397,31 @@ function assumptionUnit(name: string): AssumptionUnit {
   return name.toLowerCase().includes("escalation") ? "months" : "percent";
 }
 
-function assumptionDigits(name: string, isPlan: boolean): number {
-  if (name === "Market CAGR") return isPlan ? 2 : 1;
+function assumptionDigits(name: string, isForecast: boolean): number {
+  if (name === "Market CAGR") return isForecast ? 2 : 1;
   if (name === "Diagnosis rate" || name === "Treatment rate") return 1;
   if (name.toLowerCase().includes("escalation")) return 1;
   return 0;
 }
 
-function latestEvidence(worksheet: ExcelJS.Worksheet, row: number): unknown {
+function latestEvidence(
+  worksheet: ExcelJS.Worksheet,
+  row: number,
+  headerRow: number,
+): { value: unknown; source: string } {
   for (const column of [6, 5, 4]) {
     const value = cellValue(worksheet, row, column);
-    if (value !== null && value !== "—") return value;
+    if (value !== null && value !== "—") {
+      const evidencePeriod = textValue(
+        cellValue(worksheet, headerRow, column),
+        `${worksheet.name}!${worksheet.getColumn(column).letter}${headerRow}`,
+      );
+
+      return {
+        value,
+        source: `${worksheet.name} · ${evidencePeriod}`,
+      };
+    }
   }
 
   throw new Error(`No current evidence was found in ${worksheet.name} row ${row}.`);
@@ -324,19 +436,21 @@ function readAssumptions(worksheet: ExcelJS.Worksheet): Assumption[] {
     if (typeof rawName !== "string" || rawName.length === 0) break;
 
     const unit = assumptionUnit(rawName);
-    const plan = parseNumberFromLabel(cellValue(worksheet, row, 3), `${worksheet.name}!C${row}`);
-    const current = parseNumberFromLabel(latestEvidence(worksheet, row), `${worksheet.name} row ${row}`);
+    const forecast = parseNumberFromLabel(cellValue(worksheet, row, 3), `${worksheet.name}!C${row}`);
+    const evidence = latestEvidence(worksheet, row, headerRow);
+    const current = parseNumberFromLabel(evidence.value, `${worksheet.name} row ${row}`);
     const sourceStatus = textValue(cellValue(worksheet, row, 7), `${worksheet.name}!G${row}`);
 
     result.push({
       name: rawName,
-      plan,
+      forecast,
       current,
-      variance: current - plan,
+      variance: current - forecast,
       unit,
+      source: evidence.source,
       sourceStatus,
       status: mapAssumptionStatus(sourceStatus),
-      planDigits: assumptionDigits(rawName, true),
+      forecastDigits: assumptionDigits(rawName, true),
       currentDigits: assumptionDigits(rawName, false),
     });
   }
@@ -366,11 +480,14 @@ async function readDashboardData(): Promise<DashboardData> {
     market: readMarket(requireWorksheet(workbook, "Market growth")),
     segments: readSegments(requireWorksheet(workbook, "Patient split")),
     npsShare: readNpsShare(requireWorksheet(workbook, "Product Uptake")),
+    productMix: readProductMix(requireWorksheet(workbook, "LLT Product Mix")),
     advancedPool,
     activeHcp,
     inflow: readInflow(sourceWorksheet),
     demand,
     persistency,
+    compliance: readCompliance(requireWorksheet(workbook, "Compliance")),
+    prescribers: readPrescribers(requireWorksheet(workbook, "Prescriber Breadth Depth")),
     assumptions: readAssumptions(requireWorksheet(workbook, "Assumption Monitor")),
   };
 
@@ -383,11 +500,14 @@ function validateDashboardData(data: DashboardData): void {
     ["market", data.market.length],
     ["patient segments", data.segments.length],
     ["NPS share", data.npsShare.length],
+    ["product mix", data.productMix.length],
     ["advanced-LLT pool", data.advancedPool.length],
     ["active HCP universe", data.activeHcp.length],
     ["patient inflow", data.inflow.length],
     ["new-patient demand", data.demand.length],
     ["persistency", data.persistency.length],
+    ["compliance", data.compliance.length],
+    ["prescriber breadth and depth", data.prescribers.length],
     ["assumptions", data.assumptions.length],
   ] as const;
 
@@ -408,6 +528,13 @@ function validateDashboardData(data: DashboardData): void {
     const total = point.newlyIntensified + point.switchFromAdvanced + point.other;
     if (Math.abs(total - 1) > 0.001) {
       throw new Error(`Patient inflow percentages for ${point.label} must total 100%.`);
+    }
+  }
+
+  for (const point of data.productMix) {
+    const total = point.shares.reduce((sum, item) => sum + item.share, 0);
+    if (Math.abs(total - 1) > 0.002) {
+      throw new Error(`Product mix percentages for ${point.label} must total 100%.`);
     }
   }
 }

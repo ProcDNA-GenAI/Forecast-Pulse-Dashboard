@@ -1,5 +1,5 @@
 export type SegmentGroup = "ascvd" | "ppt2d" | "ppno";
-export type AssumptionStatus = "On Track" | "Watch" | "Off Track";
+export type AssumptionStatus = "On Track" | "Watch" | "Take Action";
 export type AssumptionUnit = "percent" | "months";
 
 export type MarketPoint = {
@@ -22,6 +22,28 @@ export type ComparisonPoint = {
   actual: number;
 };
 
+export type NpsPoint = ComparisonPoint & {
+  forecastCount: number;
+  actualCount: number;
+};
+
+export type ProductMixShare = {
+  product: string;
+  share: number;
+};
+
+export type ProductMixPoint = {
+  label: string;
+  totalPatientsMillions: number;
+  shares: ProductMixShare[];
+};
+
+export type PrescriberPoint = {
+  specialty: string;
+  writers: number;
+  prescriptionsPerWriter: number;
+};
+
 export type TrendPoint = {
   label: string;
   value: number;
@@ -36,13 +58,14 @@ export type InflowPoint = {
 
 export type Assumption = {
   name: string;
-  plan: number;
+  forecast: number;
   current: number;
   variance: number;
   unit: AssumptionUnit;
+  source: string;
   sourceStatus: string;
   status: AssumptionStatus;
-  planDigits: number;
+  forecastDigits: number;
   currentDigits: number;
 };
 
@@ -52,11 +75,14 @@ export type DashboardData = {
   };
   market: MarketPoint[];
   segments: PatientSegment[];
-  npsShare: ComparisonPoint[];
+  npsShare: NpsPoint[];
+  productMix: ProductMixPoint[];
   advancedPool: TrendPoint[];
   activeHcp: TrendPoint[];
   inflow: InflowPoint[];
   demand: ComparisonPoint[];
   persistency: ComparisonPoint[];
+  compliance: ComparisonPoint[];
+  prescribers: PrescriberPoint[];
   assumptions: Assumption[];
 };

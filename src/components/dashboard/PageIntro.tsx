@@ -9,7 +9,7 @@ export function PageIntro({ title, description }: PageIntroProps) {
       <h1 className="m-0 text-lg font-bold text-content">{title}</h1>
       <p className="mb-1.5 mt-0 text-[13px] text-muted">{description}</p>
       <p className="mb-3 mt-0 text-[11px] italic text-muted">
-        All metrics are vs. Launch Plan unless stated.
+        All comparisons are vs. {FORECAST_LABEL} unless stated.
       </p>
     </div>
   );
@@ -24,3 +24,4 @@ export function SectionHeading({ title, question }: { title: string; question: s
     </div>
   );
 }
+import { FORECAST_LABEL } from "@/utils/dashboard/periods";

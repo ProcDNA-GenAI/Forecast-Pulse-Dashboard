@@ -1,15 +1,22 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Bar, Chart, Line } from "react-chartjs-2";
+import { Bar, Chart, Doughnut, Line } from "react-chartjs-2";
 import type { ChartData, ChartOptions } from "chart.js";
 import { useDashboard } from "@/components/dashboard/DashboardProvider";
 import { CardHeader, DashboardCard } from "@/components/dashboard/DashboardCard";
 import { DataTag, Legend, LegendItem, MiniButton } from "@/components/dashboard/DashboardControls";
 import { rgba, useChartColors, type ChartColors } from "@/components/charts/chartSetup";
-import { getProductMixSeries, prescriberBreadthDepth, productMixLabels, productMixPatientPool } from "@/utils/dashboard/hardcoded-series";
 import { takeForBucket } from "@/utils/dashboard/formatters";
-import type { ComparisonPoint, InflowPoint, TrendPoint } from "@/utils/dashboard/types";
+import type {
+  ComparisonPoint,
+  InflowPoint,
+  NpsPoint,
+  PrescriberPoint,
+  ProductMixPoint,
+  TrendPoint,
+} from "@/utils/dashboard/types";
+import { ACTUALS_PERIOD, FORECAST_LABEL, FORECAST_REFRESH_PERIOD } from "@/utils/dashboard/periods";
 
 function colorFromToken(colors: ChartColors, token: keyof ChartColors): string {
   return colors[token];
@@ -19,28 +26,26 @@ function cssVariableForToken(token: string): string {
   return `var(--color-${token})`;
 }
 
-export function ProductMixCard({ productName }: { productName: string }) {
+const productColorTokens = ["accent", "pink", "teal", "violet", "orange"] as const;
+
+export function ProductMixCard({ points }: { points: ProductMixPoint[] }) {
   const { bucket } = useDashboard();
   const colors = useChartColors();
   const [mode, setMode] = useState<"pct" | "count">("pct");
-  const labels = takeForBucket(productMixLabels, bucket);
-  const visibleLength = labels.length;
-  const patientPool = productMixPatientPool.slice(-visibleLength);
-  const series = useMemo(() => getProductMixSeries(productName), [productName]);
+  const visible = takeForBucket(points, bucket);
+  const products = points[0]?.shares.map((item) => item.product) ?? [];
 
   const data: ChartData<"bar", number[], string> = {
-    labels,
-    datasets: series.map((item) => {
-      const shares = item.values.slice(-visibleLength);
-      const values =
-        mode === "pct"
-          ? shares
-          : shares.map((share, index) => Number(((share / 100) * patientPool[index]).toFixed(3)));
-
+    labels: visible.map((point) => point.label),
+    datasets: products.map((product, productIndex) => {
+      const colorToken = productColorTokens[productIndex] ?? "primary";
       return {
-        label: item.label,
-        data: values,
-        backgroundColor: rgba(colorFromToken(colors, item.colorToken), 0.92),
+        label: product,
+        data: visible.map((point) => {
+          const share = point.shares.find((item) => item.product === product)?.share ?? 0;
+          return mode === "pct" ? share * 100 : Number((share * point.totalPatientsMillions).toFixed(3));
+        }),
+        backgroundColor: rgba(colorFromToken(colors, colorToken), 0.92),
         borderWidth: 0,
         stack: "product-mix",
       };
@@ -91,8 +96,12 @@ export function ProductMixCard({ productName }: { productName: string }) {
         }
       />
       <Legend>
-        {series.map((item) => (
-          <LegendItem key={item.label} label={item.label} color={cssVariableForToken(item.colorToken)} />
+        {products.map((product, productIndex) => (
+          <LegendItem
+            key={product}
+            label={product}
+            color={cssVariableForToken(productColorTokens[productIndex] ?? "primary")}
+          />
         ))}
       </Legend>
       <div className="relative mt-2.5 h-[210px]">
@@ -102,25 +111,29 @@ export function ProductMixCard({ productName }: { productName: string }) {
   );
 }
 
-export function NpsMarketShareCard({ points, productName }: { points: ComparisonPoint[]; productName: string }) {
+export function NpsMarketShareCard({ points, productName }: { points: NpsPoint[]; productName: string }) {
   const { bucket } = useDashboard();
   const colors = useChartColors();
+  const [mode, setMode] = useState<"share" | "count">("share");
   const visible = takeForBucket(points, bucket);
+  const firstPeriod = visible[0]?.label ?? ACTUALS_PERIOD;
+  const lastPeriod = visible.at(-1)?.label ?? ACTUALS_PERIOD;
+  const actualsLabel = `Actuals (${firstPeriod}–${lastPeriod})`;
 
   const data: ChartData<"line", number[], string> = {
     labels: visible.map((point) => point.label),
     datasets: [
       {
-        label: "Observed",
-        data: visible.map((point) => point.actual * 100),
+        label: actualsLabel,
+        data: visible.map((point) => (mode === "share" ? point.actual * 100 : point.actualCount)),
         borderColor: colors.orange,
         borderWidth: 2.6,
         pointRadius: 2,
         tension: 0.3,
       },
       {
-        label: "Forecast",
-        data: visible.map((point) => point.forecast * 100),
+        label: FORECAST_LABEL,
+        data: visible.map((point) => (mode === "share" ? point.forecast * 100 : point.forecastCount)),
         borderColor: colors.muted,
         borderDash: [5, 4],
         borderWidth: 1.8,
@@ -137,7 +150,10 @@ export function NpsMarketShareCard({ points, productName }: { points: Comparison
       legend: { display: false },
       tooltip: {
         callbacks: {
-          label: (context) => `${context.dataset.label}: ${Number(context.parsed.y).toFixed(1)}% NPS share`,
+          label: (context) => {
+            const value = Number(context.parsed.y);
+            return `${context.dataset.label}: ${mode === "share" ? `${value.toFixed(1)}% share` : `${Math.round(value).toLocaleString()} NPS`}`;
+          },
         },
       },
     },
@@ -145,18 +161,29 @@ export function NpsMarketShareCard({ points, productName }: { points: Comparison
       x: { grid: { display: false }, ticks: { font: { size: 9 } } },
       y: {
         grid: { color: colors.grid },
-        title: { display: true, text: "NPS Share", font: { size: 9 } },
-        ticks: { font: { size: 9 }, callback: (value) => `${value}%` },
+        title: { display: true, text: mode === "share" ? "NPS Share" : "NPS Count", font: { size: 9 } },
+        ticks: {
+          font: { size: 9 },
+          callback: (value) => mode === "share" ? `${value}%` : `${Math.round(Number(value) / 1000)}k`,
+        },
       },
     },
   };
 
   return (
     <DashboardCard>
-      <CardHeader title="NPS Market Share" />
+      <CardHeader
+        title={`${productName} NPS ${mode === "share" ? "market share" : "counts"}`}
+        subtitle="Actual calendar months"
+        action={
+          <MiniButton onClick={() => setMode((current) => (current === "share" ? "count" : "share"))}>
+            {mode === "share" ? "Show NPS counts" : "Show NPS share"}
+          </MiniButton>
+        }
+      />
       <Legend>
-        <LegendItem color="var(--color-orange)" kind="line" label="Observed" />
-        <LegendItem color="var(--color-muted)" kind="line" dashed label="Forecast" />
+        <LegendItem color="var(--color-orange)" kind="line" label={actualsLabel} />
+        <LegendItem color="var(--color-muted)" kind="line" dashed label={FORECAST_LABEL} />
       </Legend>
       <div className="relative mt-2.5 h-[210px]">
         <Line data={data} options={options} />
@@ -225,6 +252,7 @@ export function PatientInflowCard({ points, productName }: { points: InflowPoint
   const { bucket } = useDashboard();
   const colors = useChartColors();
   const visible = takeForBucket(points, bucket);
+  const periodLabel = `${visible[0]?.label ?? ACTUALS_PERIOD}–${visible.at(-1)?.label ?? ACTUALS_PERIOD}`;
 
   const data: ChartData<"line", number[], string> = {
     labels: visible.map((point) => point.label),
@@ -280,16 +308,65 @@ export function PatientInflowCard({ points, productName }: { points: InflowPoint
     },
   };
 
+  const overallShares = useMemo(() => {
+    const denominator = Math.max(visible.length, 1);
+    return [
+      visible.reduce((sum, point) => sum + point.newlyIntensified, 0) / denominator,
+      visible.reduce((sum, point) => sum + point.switchFromAdvanced, 0) / denominator,
+      visible.reduce((sum, point) => sum + point.other, 0) / denominator,
+    ];
+  }, [visible]);
+
+  const overallData: ChartData<"doughnut", number[], string> = {
+    labels: ["Newly intensified", "Switch from advanced", "Other"],
+    datasets: [
+      {
+        data: overallShares.map((value) => value * 100),
+        backgroundColor: [rgba(colors.teal, 0.9), rgba(colors.secondary, 0.9), rgba(colors.muted, 0.75)],
+        borderColor: "#ffffff",
+        borderWidth: 2,
+      },
+    ],
+  };
+
+  const overallOptions: ChartOptions<"doughnut"> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: "62%",
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: (context) => `${context.label}: ${Number(context.parsed).toFixed(0)}%` } },
+    },
+  };
+
   return (
     <DashboardCard>
-      <CardHeader title="Patient Inflow Source" />
+      <CardHeader title={`${productName} patient inflow source`} action={<DataTag>{periodLabel}</DataTag>} />
       <Legend>
         <LegendItem color="var(--color-teal)" label="Newly intensified" />
         <LegendItem color="var(--color-secondary)" label="Switch from advanced" />
         <LegendItem color="var(--color-muted)" label="Other" />
       </Legend>
-      <div className="relative mt-2.5 h-[200px]">
-        <Line data={data} options={options} />
+      <div className="mt-2.5 grid gap-5 lg:grid-cols-[minmax(0,1.75fr)_minmax(220px,0.7fr)] lg:items-center">
+        <div className="relative h-[220px]">
+          <Line data={data} options={options} />
+        </div>
+        <div className="rounded-xl border border-border bg-page/60 px-3 py-3">
+          <p className="mb-1 text-center text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">
+            Overall mix ({periodLabel})
+          </p>
+          <div className="relative mx-auto h-[170px] max-w-[230px]">
+            <Doughnut data={overallData} options={overallOptions} />
+          </div>
+          <div className="mt-1 grid grid-cols-3 gap-1 text-center">
+            {overallShares.map((value, index) => (
+              <div key={overallData.labels?.[index] as string}>
+                <div className="text-sm font-bold text-primary">{(value * 100).toFixed(0)}%</div>
+                <div className="text-[9px] leading-tight text-muted">{overallData.labels?.[index]}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
       <p className="mt-1.5 text-[10.5px] text-muted">
         &quot;Switch from advanced&quot; = patients moving into {productName} from the other five brands: Ezetimibe,
@@ -316,7 +393,7 @@ export function PersistencyCard({ points, productName }: { points: ComparisonPoi
         tension: 0.2,
       },
       {
-        label: "Blended forecast curve",
+        label: `Blended forecast curve (${FORECAST_REFRESH_PERIOD})`,
         data: visible.map((point) => point.forecast * 100),
         borderColor: colors.muted,
         borderDash: [5, 4],
@@ -350,11 +427,75 @@ export function PersistencyCard({ points, productName }: { points: ComparisonPoi
       <CardHeader title="Persistency" />
       <Legend>
         <LegendItem color="var(--color-orange)" kind="line" label={`${productName} persistency`} />
-        <LegendItem color="var(--color-muted)" kind="line" dashed label="Blended forecast curve" />
+        <LegendItem color="var(--color-muted)" kind="line" dashed label={`Blended forecast curve (${FORECAST_REFRESH_PERIOD})`} />
       </Legend>
       <div className="relative mt-2.5 h-[200px]">
         <Line data={data} options={options} />
       </div>
+    </DashboardCard>
+  );
+}
+
+export function ComplianceCard({ points, productName }: { points: ComparisonPoint[]; productName: string }) {
+  const { bucket } = useDashboard();
+  const colors = useChartColors();
+  const visible = takeForBucket(points, bucket);
+  const actualsLabel = `${productName} compliance (${visible[0]?.label ?? ACTUALS_PERIOD}–${visible.at(-1)?.label ?? ACTUALS_PERIOD})`;
+
+  const data: ChartData<"line", number[], string> = {
+    labels: visible.map((point) => point.label),
+    datasets: [
+      {
+        label: actualsLabel,
+        data: visible.map((point) => point.actual * 100),
+        borderColor: colors.teal,
+        backgroundColor: rgba(colors.teal, 0.08),
+        fill: true,
+        borderWidth: 2.6,
+        pointRadius: 3,
+        tension: 0.25,
+      },
+      {
+        label: FORECAST_LABEL,
+        data: visible.map((point) => point.forecast * 100),
+        borderColor: colors.muted,
+        borderDash: [5, 4],
+        borderWidth: 1.8,
+        pointRadius: 0,
+        tension: 0.25,
+      },
+    ],
+  };
+
+  const options: ChartOptions<"line"> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${Number(context.parsed.y).toFixed(0)}%` } },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 9 } } },
+      y: {
+        min: 70,
+        max: 90,
+        grid: { color: colors.grid },
+        ticks: { font: { size: 9 }, callback: (value) => `${value}%` },
+      },
+    },
+  };
+
+  return (
+    <DashboardCard>
+      <CardHeader title="Compliance" subtitle="claims-based medication adherence" />
+      <Legend>
+        <LegendItem color="var(--color-teal)" kind="line" label={actualsLabel} />
+        <LegendItem color="var(--color-muted)" kind="line" dashed label={FORECAST_LABEL} />
+      </Legend>
+      <div className="relative mt-2.5 h-[200px]">
+        <Line data={data} options={options} />
+      </div>
+      <p className="mt-1.5 text-[10.5px] text-muted">Illustrative claims data; replace with the ongoing claims feed when available.</p>
     </DashboardCard>
   );
 }
@@ -368,13 +509,13 @@ export function DemandCard({ points }: { points: ComparisonPoint[] }) {
     labels: visible.map((point) => point.label),
     datasets: [
       {
-        label: "Forecast NPS",
+        label: `Forecast NPS (${FORECAST_REFRESH_PERIOD})`,
         data: visible.map((point) => point.forecast),
         backgroundColor: rgba(colors.muted, 0.55),
         borderRadius: 3,
       },
       {
-        label: "Actual NPS",
+        label: `Actual NPS (through ${visible.at(-1)?.label ?? ACTUALS_PERIOD})`,
         data: visible.map((point) => point.actual),
         backgroundColor: rgba(colors.orange, 0.9),
         borderRadius: 3,
@@ -404,10 +545,10 @@ export function DemandCard({ points }: { points: ComparisonPoint[] }) {
 
   return (
     <DashboardCard>
-      <CardHeader title="New-patient demand (NPS) — vs forecast" />
+      <CardHeader title={`New-patient demand (NPS) — vs ${FORECAST_LABEL.toLowerCase()}`} />
       <Legend>
-        <LegendItem color="var(--color-orange)" label="Actual NPS" />
-        <LegendItem color="var(--color-muted)" label="Forecast NPS" />
+        <LegendItem color="var(--color-orange)" label={`Actual NPS (through ${visible.at(-1)?.label ?? ACTUALS_PERIOD})`} />
+        <LegendItem color="var(--color-muted)" label={`Forecast NPS (${FORECAST_REFRESH_PERIOD})`} />
       </Legend>
       <div className="relative mt-2.5 h-[200px]">
         <Bar data={data} options={options} />
@@ -416,17 +557,17 @@ export function DemandCard({ points }: { points: ComparisonPoint[] }) {
   );
 }
 
-export function PrescriberCard() {
+export function PrescriberCard({ points }: { points: PrescriberPoint[] }) {
   const colors = useChartColors();
   const [simple, setSimple] = useState(false);
 
   const comboData: ChartData<"bar" | "line", number[], string> = {
-    labels: prescriberBreadthDepth.map((item) => item.specialty),
+    labels: points.map((item) => item.specialty),
     datasets: [
       {
         type: "bar",
         label: "Writers",
-        data: prescriberBreadthDepth.map((item) => item.writers),
+        data: points.map((item) => item.writers),
         backgroundColor: rgba(colors.secondary, 0.85),
         yAxisID: "y",
         borderRadius: 4,
@@ -435,7 +576,7 @@ export function PrescriberCard() {
       {
         type: "line",
         label: "TRx / writer",
-        data: prescriberBreadthDepth.map((item) => item.prescriptionsPerWriter),
+        data: points.map((item) => item.prescriptionsPerWriter),
         borderColor: colors.orange,
         backgroundColor: colors.orange,
         yAxisID: "y2",
@@ -470,11 +611,11 @@ export function PrescriberCard() {
   };
 
   const simpleData: ChartData<"bar", number[], string> = {
-    labels: prescriberBreadthDepth.map((item) => item.specialty),
+    labels: points.map((item) => item.specialty),
     datasets: [
       {
         label: "Writers",
-        data: prescriberBreadthDepth.map((item) => item.writers),
+        data: points.map((item) => item.writers),
         backgroundColor: colors.secondary,
         borderRadius: 4,
         barPercentage: 0.6,
@@ -491,7 +632,7 @@ export function PrescriberCard() {
       tooltip: {
         callbacks: {
           label: (context) => {
-            const item = prescriberBreadthDepth[context.dataIndex];
+            const item = points[context.dataIndex];
             return `${item.writers.toLocaleString()} writers · ${item.prescriptionsPerWriter} Rx/writer`;
           },
         },

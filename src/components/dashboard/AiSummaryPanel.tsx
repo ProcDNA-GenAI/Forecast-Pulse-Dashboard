@@ -9,7 +9,7 @@ export function AiSummaryPanel({
   title: string;
   subtitle: string;
   summary: ReactNode;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <section className="mt-4 rounded-2xl border border-[#e2e0ee] bg-[linear-gradient(180deg,#eef2fb,#f6f4fb)] px-5 py-[18px]">
@@ -20,8 +20,8 @@ export function AiSummaryPanel({
         <h2 className="m-0 text-base font-bold text-content">{title}</h2>
       </div>
       <p className="mb-3 mt-0 text-[12.5px] text-muted">{subtitle}</p>
-      <div className="mb-4 text-[13.5px] leading-[1.55] text-[#3a434b]">{summary}</div>
-      <div className="grid gap-[22px] lg:grid-cols-[1.3fr_1fr]">{children}</div>
+      <div className={`${children ? "mb-4" : ""} text-[13.5px] leading-[1.55] text-[#3a434b]`}>{summary}</div>
+      {children ? <div className="grid gap-[22px] lg:grid-cols-[1.3fr_1fr]">{children}</div> : null}
     </section>
   );
 }

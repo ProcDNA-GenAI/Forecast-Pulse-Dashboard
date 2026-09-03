@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { AiSummaryPanel, SummaryColumn, SummaryFlag, SummarySignal } from "@/components/dashboard/AiSummaryPanel";
 import { PageIntro } from "@/components/dashboard/PageIntro";
 import {
+  ComplianceCard,
   DemandCard,
   NpsMarketShareCard,
   PatientInflowCard,
@@ -13,29 +15,7 @@ import {
 } from "./MarketIndicatorCards";
 import { formatPercent, latestComparison, latestPoint } from "@/utils/dashboard/formatters";
 import type { DashboardData } from "@/utils/dashboard/types";
-
-function IndicatorBand({
-  title,
-  subtitle,
-  variant = "market",
-}: {
-  title: string;
-  subtitle: string;
-  variant?: "market" | "launch";
-}) {
-  return (
-    <div
-      className={`mb-3 mt-6 flex items-baseline gap-3 rounded-lg border-l-4 px-4 py-[11px] ${
-        variant === "market" ? "border-secondary bg-[#eaf1fb]" : "border-orange bg-[#fdf1e8]"
-      }`}
-    >
-      <h2 className={`m-0 text-[15px] font-bold ${variant === "market" ? "text-primary" : "text-[#a54420]"}`}>
-        {title}
-      </h2>
-      <span className="text-xs text-muted">{subtitle}</span>
-    </div>
-  );
-}
+import { FORECAST_LABEL, FORECAST_REFRESH_PERIOD } from "@/utils/dashboard/periods";
 
 function IndicatorsSummary({ data }: { data: DashboardData }) {
   const share = latestComparison(data.npsShare);
@@ -59,8 +39,8 @@ function IndicatorsSummary({ data }: { data: DashboardData }) {
       subtitle="Auto-generated synthesis of the tiles above — observations only."
       summary={
         <p className="m-0">
-          {data.meta.productName}&apos;s NPS market share is running above the forecast curve ({formatPercent(share.actual, 0)} observed
-          vs {formatPercent(share.forecast, 0)} assumed at {share.label}). The advanced-LLT pool is expanding and the
+          {data.meta.productName}&apos;s NPS market share is running slightly above the {FORECAST_LABEL.toLowerCase()} curve ({formatPercent(share.actual, 1)} actual
+          vs {formatPercent(share.forecast, 1)} forecast at {share.label}). The advanced-LLT patient pool is expanding and the
           active HCP universe is broadening ({firstHcp.value.toLocaleString()} → {lastHcp.value.toLocaleString()}). Most
           new starts are switches from other advanced brands (~{formatPercent(lastInflow.switchFromAdvanced, 0)}), while
           newly-intensified starts are rising ({formatPercent(firstInflow.newlyIntensified, 0)} →{" "}
@@ -72,8 +52,8 @@ function IndicatorsSummary({ data }: { data: DashboardData }) {
         <SummarySignal
           direction="up"
           title="NPS share ahead of forecast"
-          description={`Observed above the assumed curve through ${share.label}.`}
-          value={`+${(shareVariance * 100).toFixed(0)} pt`}
+          description={`Actuals above ${FORECAST_LABEL.toLowerCase()} through ${share.label}.`}
+          value={`+${(shareVariance * 100).toFixed(1)} pp`}
           valueClassName="text-success"
         />
         <SummarySignal
@@ -108,27 +88,48 @@ function IndicatorsSummary({ data }: { data: DashboardData }) {
 }
 
 export function MarketIndicatorsDashboard({ data }: { data: DashboardData }) {
+  const [activeView, setActiveView] = useState<"market" | "launch">("market");
+
   return (
     <>
       <PageIntro
-        title="Market Intelligence Detail"
-        description="Underlying market trends and launch tracking behind the executive summary."
+        title="Market Intelligence"
+        description={`Explore market-level trends and ${data.meta.productName} launch performance in two focused views.`}
       />
 
-      <IndicatorBand title="Key Market Indicators" subtitle="market-level trends" />
-      <div className="space-y-4">
-        <div className="grid gap-4 lg:grid-cols-2">
-          <ProductMixCard productName={data.meta.productName} />
-          <NpsMarketShareCard points={data.npsShare} productName={data.meta.productName} />
+      <div className="mb-4 rounded-2xl border border-border bg-surface p-1.5 shadow-[0_4px_18px_rgba(8,50,96,0.06)]">
+        <div className="grid grid-cols-2 gap-1" role="tablist" aria-label="Market intelligence views">
+          {[
+            { id: "market" as const, label: "Market Intelligence", description: "Market-level trends" },
+            { id: "launch" as const, label: `${data.meta.productName} launch tracking`, description: "Product performance" },
+          ].map((view) => (
+            <button
+              key={view.id}
+              type="button"
+              role="tab"
+              aria-selected={activeView === view.id}
+              onClick={() => setActiveView(view.id)}
+              className={`cursor-pointer rounded-xl px-3 py-2.5 text-left transition-all sm:px-5 ${
+                activeView === view.id
+                  ? "bg-primary text-white shadow-sm"
+                  : "text-muted hover:bg-page hover:text-primary"
+              }`}
+            >
+              <span className="block text-[13px] font-bold sm:text-sm">{view.label}</span>
+              <span className={`mt-0.5 hidden text-[10px] sm:block ${activeView === view.id ? "text-primary-soft" : "text-muted"}`}>
+                {view.description}
+              </span>
+            </button>
+          ))}
         </div>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <TrendCard
-            title="Advanced-LLT pool"
-            points={data.advancedPool}
-            colorToken="tertiary"
-            valueLabel={(value) => `${value.toFixed(2)}M`}
-            tickLabel={(value) => `${value.toFixed(2)}M`}
-          />
+      </div>
+
+      {activeView === "market" ? (
+        <section role="tabpanel" aria-label="Market Intelligence" className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ProductMixCard points={data.productMix} />
+            <NpsMarketShareCard points={data.npsShare} productName={data.meta.productName} />
+          </div>
           <TrendCard
             title="Active HCP universe"
             points={data.activeHcp}
@@ -136,25 +137,25 @@ export function MarketIndicatorsDashboard({ data }: { data: DashboardData }) {
             valueLabel={(value) => `${Math.round(value).toLocaleString()} HCPs`}
             tickLabel={(value) => `${(value / 1000).toFixed(1)}k`}
           />
-        </div>
-      </div>
-
-      <IndicatorBand title="Launch Tracking" subtitle={`${data.meta.productName} as the live analog`} variant="launch" />
-      <div className="space-y-4">
-        <div className="grid gap-4 lg:grid-cols-2">
+        </section>
+      ) : (
+        <section role="tabpanel" aria-label={`${data.meta.productName} launch tracking`} className="space-y-4">
           <PatientInflowCard points={data.inflow} productName={data.meta.productName} />
-          <PersistencyCard points={data.persistency} productName={data.meta.productName} />
-        </div>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <DemandCard points={data.demand} />
-          <PrescriberCard />
-        </div>
-      </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <PersistencyCard points={data.persistency} productName={data.meta.productName} />
+            <ComplianceCard points={data.compliance} productName={data.meta.productName} />
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <DemandCard points={data.demand} />
+            <PrescriberCard points={data.prescribers} />
+          </div>
+        </section>
+      )}
 
       <IndicatorsSummary data={data} />
 
       <footer className="mt-5 border-t border-border pt-3 text-[11.5px] text-muted">
-        Data as of 18 Aug 2026 · all comparisons vs. approved Launch Plan (May 2026) · next refresh 25 Aug 2026 ·
+        Data as of 18 Aug 2026 · all comparisons vs. Forecast ({FORECAST_REFRESH_PERIOD}) · next refresh 25 Aug 2026 ·
         illustrative mock data
       </footer>
     </>

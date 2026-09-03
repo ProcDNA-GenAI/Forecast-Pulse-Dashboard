@@ -55,47 +55,75 @@ a {
   animation: chat-thinking 1.1s ease-in-out infinite;
 }
 
-.chat-rich-text p + p,
-.chat-rich-text p + ul,
-.chat-rich-text p + ol,
-.chat-rich-text ul + p,
-.chat-rich-text ol + p,
-.chat-rich-text table + p {
+.chat-markdown p + p,
+.chat-markdown p + ul,
+.chat-markdown p + ol,
+.chat-markdown ul + p,
+.chat-markdown ol + p,
+.chat-markdown table + p {
   margin-top: 0.65rem;
 }
 
-.chat-rich-text ul,
-.chat-rich-text ol {
+.chat-markdown ul,
+.chat-markdown ol {
   padding-left: 1.15rem;
 }
 
-.chat-rich-text ul {
+.chat-markdown ul {
   list-style: disc;
 }
 
-.chat-rich-text ol {
+.chat-markdown ol {
   list-style: decimal;
 }
 
-.chat-rich-text li + li {
+.chat-markdown li + li {
   margin-top: 0.25rem;
 }
 
-.chat-rich-text a {
+.chat-markdown a {
   color: var(--color-secondary);
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
-.chat-rich-text code {
+.chat-markdown h1,
+.chat-markdown h2,
+.chat-markdown h3,
+.chat-markdown h4 {
+  margin-top: 0.8rem;
+  margin-bottom: 0.35rem;
+  color: var(--color-primary-deep);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.chat-markdown h1,
+.chat-markdown h2 {
+  font-size: 0.9rem;
+}
+
+.chat-markdown h3,
+.chat-markdown h4 {
+  font-size: 0.82rem;
+}
+
+.chat-markdown blockquote {
+  margin-top: 0.65rem;
+  border-left: 3px solid var(--color-tertiary);
+  background: color-mix(in srgb, var(--color-tertiary) 6%, white);
+  padding: 0.55rem 0.7rem;
+}
+
+.chat-markdown code {
   border-radius: 0.3rem;
   background: color-mix(in srgb, var(--color-primary) 8%, white);
   padding: 0.1rem 0.3rem;
   font-size: 0.86em;
 }
 
-.chat-rich-text pre {
+.chat-markdown pre {
   margin-top: 0.65rem;
   overflow-x: auto;
   border-radius: 0.65rem;
@@ -104,30 +132,44 @@ a {
   color: white;
 }
 
-.chat-rich-text pre code {
+.chat-markdown pre code {
   background: transparent;
   padding: 0;
   color: inherit;
 }
 
-.chat-rich-text table {
+.chat-markdown table {
   margin-top: 0.65rem;
   width: 100%;
   border-collapse: collapse;
   font-size: 0.75rem;
 }
 
-.chat-rich-text th,
-.chat-rich-text td {
+.chat-markdown th,
+.chat-markdown td {
   border: 1px solid var(--color-border);
   padding: 0.4rem 0.5rem;
   text-align: left;
   vertical-align: top;
 }
 
-.chat-rich-text th {
+.chat-markdown th {
   background: color-mix(in srgb, var(--color-primary) 7%, white);
   font-weight: 700;
+}
+
+.chat-scrollbar {
+  scrollbar-color: color-mix(in srgb, var(--color-primary) 28%, transparent) transparent;
+  scrollbar-width: thin;
+}
+
+.chat-scrollbar::-webkit-scrollbar {
+  width: 7px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 24%, transparent);
 }
 
 @keyframes chat-panel-enter {
