@@ -10,7 +10,7 @@ import type { AuthUser } from "@/utils/auth/types";
 import { formatDocumentAnswer } from "@/utils/chat/answer-format";
 import type { AnswerDataSource, ChatMessage as ChatMessageModel, DaeChunk } from "@/utils/chat/types";
 import { ChatChartGroup, StreamingChatChart } from "./ChatChart";
-import { ChatProcessing, ThinkingDots } from "./ChatProcessing";
+import { ChatProcessing, DocumentProcessing } from "./ChatProcessing";
 import { ChatResultTable } from "./ChatResultTable";
 import { SourceReferenceModal } from "./SourceReferenceModal";
 
@@ -144,6 +144,22 @@ function AssistantAnswer({ message, onAsk }: { message: ChatMessageModel; onAsk:
       ? [{ recommendedIndex: 0, variants: meta.charts }]
       : [];
 
+  if (isDocumentAnswer && message.status === "streaming" && !formattedContent) {
+    return (
+      <div className="flex items-start gap-2.5">
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-sm">
+          <Bot className="h-4 w-4" aria-hidden="true" />
+        </span>
+        <div className="min-w-0 pt-0.5">
+          <DocumentProcessing steps={meta?.processingSteps || []} />
+          <p className="mt-1 pl-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted">
+            {meta?.route === "BR" ? "Business rules" : "Market research"}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="flex items-start gap-2.5">
@@ -159,10 +175,6 @@ function AssistantAnswer({ message, onAsk }: { message: ChatMessageModel; onAsk:
                 confidenceScore={meta?.confidenceScore}
                 confidenceReason={meta?.confidenceReason}
               />
-            ) : message.status === "streaming" && !formattedContent ? (
-              <div className="flex h-6 items-center px-0.5" aria-label="InsightSphere is preparing an answer" role="status">
-                <ThinkingDots />
-              </div>
             ) : null}
 
             {meta?.streamingChart ? <StreamingChatChart chart={meta.streamingChart} /> : null}

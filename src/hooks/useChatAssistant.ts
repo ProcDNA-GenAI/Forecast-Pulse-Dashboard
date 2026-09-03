@@ -172,7 +172,13 @@ export function useChatAssistant() {
               ...message,
               meta: {
                 ...message.meta,
-                processingSteps: [...(message.meta?.processingSteps || []), step],
+                processingSteps: [
+                  ...(message.meta?.processingSteps || []).map((existingStep) => ({
+                    ...existingStep,
+                    status: existingStep.status === "active" ? "complete" as const : existingStep.status,
+                  })),
+                  step,
+                ],
               },
             }));
           };
