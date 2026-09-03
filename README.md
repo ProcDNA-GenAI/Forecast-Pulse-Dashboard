@@ -52,3 +52,24 @@ Edit the semantic color tokens in `src/app/globals.css`. Components use Tailwind
 npm run lint
 npm run build
 ```
+
+## Docker
+
+The production image uses Next.js standalone output and runs as the non-root `node` user on port `3000`.
+
+The compose service should pass the backend proxy path while building the frontend because `NEXT_PUBLIC_*` values are embedded in the browser bundle at build time:
+
+```yaml
+frontend:
+  build:
+    context: ./Forecast-Pulse-Dashboard
+    dockerfile: Dockerfile
+    args:
+      NEXT_PUBLIC_API_URL: /backend-api
+  environment:
+    NEXT_PUBLIC_API_URL: /backend-api
+  expose:
+    - "3000"
+```
+
+Nginx must proxy `/backend-api` to the Data Agent backend without changing the API route suffixes.
