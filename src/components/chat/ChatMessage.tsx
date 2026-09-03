@@ -7,9 +7,10 @@ import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import { useId, useMemo, useState, type ReactNode } from "react";
 import type { AuthUser } from "@/utils/auth/types";
+import { formatDocumentAnswer } from "@/utils/chat/answer-format";
 import type { AnswerDataSource, ChatMessage as ChatMessageModel, DaeChunk } from "@/utils/chat/types";
 import { ChatChartGroup, StreamingChatChart } from "./ChatChart";
-import { ChatProcessing } from "./ChatProcessing";
+import { ChatProcessing, ThinkingDots } from "./ChatProcessing";
 import { ChatResultTable } from "./ChatResultTable";
 import { SourceReferenceModal } from "./SourceReferenceModal";
 
@@ -134,7 +135,9 @@ function AssistantAnswer({ message, onAsk }: { message: ChatMessageModel; onAsk:
   const [citation, setCitation] = useState<{ label: string; chunk?: DaeChunk } | null>(null);
   const meta = message.meta;
   const dae = meta?.dae;
-  const markdown = dae ? markCitations(message.content) : message.content;
+  const isDocumentAnswer = meta?.route === "DAE" || meta?.route === "BR";
+  const formattedContent = isDocumentAnswer ? formatDocumentAnswer(message.content) : message.content;
+  const markdown = isDocumentAnswer ? markCitations(formattedContent) : formattedContent;
   const chartGroups = meta?.chartGroups?.length
     ? meta.chartGroups
     : meta?.charts?.length
@@ -149,12 +152,18 @@ function AssistantAnswer({ message, onAsk }: { message: ChatMessageModel; onAsk:
         </span>
         <div className="min-w-0 max-w-[calc(100%-2.625rem)] flex-1">
           <div className={`rounded-2xl rounded-tl-sm border px-3.5 py-3 shadow-sm ${message.status === "error" ? "border-danger/20 bg-danger/5" : "border-primary/10 bg-surface"}`}>
-            <ChatProcessing
-              steps={meta?.processingSteps || []}
-              isStreaming={message.status === "streaming"}
-              confidenceScore={meta?.confidenceScore}
-              confidenceReason={meta?.confidenceReason}
-            />
+            {!isDocumentAnswer ? (
+              <ChatProcessing
+                steps={meta?.processingSteps || []}
+                isStreaming={message.status === "streaming"}
+                confidenceScore={meta?.confidenceScore}
+                confidenceReason={meta?.confidenceReason}
+              />
+            ) : message.status === "streaming" && !formattedContent ? (
+              <div className="flex h-6 items-center px-0.5" aria-label="InsightSphere is preparing an answer" role="status">
+                <ThinkingDots />
+              </div>
+            ) : null}
 
             {meta?.streamingChart ? <StreamingChatChart chart={meta.streamingChart} /> : null}
             {chartGroups.map((group, index) => <ChatChartGroup key={`${group.title || "chart"}-${index}`} group={group} />)}
@@ -163,15 +172,15 @@ function AssistantAnswer({ message, onAsk }: { message: ChatMessageModel; onAsk:
               <div className="chat-markdown text-[13px] leading-[1.6] text-content">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeRaw, [rehypeSanitize, answerSanitizeSchema]]}
-                  urlTransform={answerUrlTransform}
+                  rehypePlugins={isDocumentAnswer ? [rehypeRaw, [rehypeSanitize, answerSanitizeSchema]] : []}
+                  urlTransform={isDocumentAnswer ? answerUrlTransform : undefined}
                   components={{
                     a: ({ href, children, ...props }) => {
                       if (href?.startsWith("citation://") && dae) {
                         const label = decodeURIComponent(href.slice("citation://".length));
                         return (
-                          <button type="button" onClick={() => setCitation({ label, chunk: findCitationChunk(label, dae.chunks, dae.chunkIdMap) })} className="mx-0.5 cursor-pointer rounded bg-primary/10 px-1 py-0.5 align-baseline text-[10px] font-bold text-primary hover:bg-primary hover:text-white">
-                            {children}
+                          <button type="button" onClick={() => setCitation({ label, chunk: findCitationChunk(label, dae.chunks, dae.chunkIdMap) })} className="mx-0.5 inline-flex h-5 min-w-5 cursor-pointer items-center justify-center rounded-full bg-primary/10 px-1.5 align-super text-[10px] font-bold leading-none text-primary transition hover:bg-primary/20" aria-label={`Open source ${label}`}>
+                            {label}
                           </button>
                         );
                       }
