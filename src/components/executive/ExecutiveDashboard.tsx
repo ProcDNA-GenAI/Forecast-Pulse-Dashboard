@@ -49,8 +49,8 @@ function MetricCard({
   label: string;
   value: string;
   valueSuffix?: string;
-  detail: ReactNode;
-  detailClassName: string;
+  detail?: ReactNode;
+  detailClassName?: string;
 }) {
   return (
     <section className="min-h-[145px] rounded-[14px] border border-border bg-surface px-4 py-[15px] shadow-[0_1px_2px_rgba(38,48,58,0.02)]">
@@ -59,7 +59,7 @@ function MetricCard({
         {value}
         {valueSuffix ? <span className="text-[12px] font-semibold text-muted">{valueSuffix}</span> : null}
       </div>
-      <div className={`text-[12px] font-semibold leading-[1.45] ${detailClassName}`}>{detail}</div>
+      {detail ? <div className={`text-[12px] font-semibold leading-[1.45] ${detailClassName || ""}`}>{detail}</div> : null}
     </section>
   );
 }
@@ -74,7 +74,7 @@ function MarketSection({ data }: { data: DashboardData }) {
       <SectionHeading title="Market" question="is it evolving as expected?" />
       <DashboardCard>
         <CardHeader
-          title="Treated LLT market — actuals vs forecast"
+          title="Treated LLT market: actuals vs forecast"
           action={<DataTag>forecast refreshed {FORECAST_REFRESH_PERIOD}</DataTag>}
         />
         <Legend>
@@ -96,7 +96,7 @@ function MarketSection({ data }: { data: DashboardData }) {
         <p className="mt-2 text-[11.5px] text-muted">
           The forecast was refreshed in <strong>{FORECAST_REFRESH_PERIOD}</strong>, while the latest outlook
           incorporates actuals through <strong>{ACTUALS_PERIOD}</strong>. The current variance compounds into a
-          larger market-size deviation over the 2027–43 outlook.
+          larger market-size deviation over the 2027-43 outlook.
         </p>
         <div className="overflow-x-auto">
           <table className="mt-2.5 w-full min-w-[520px] border-collapse text-xs tabular-nums">
@@ -300,11 +300,11 @@ function ExecutiveSummaryPanel({ data }: { data: DashboardData }) {
   return (
     <AiSummaryPanel
       title="What the latest evidence shows"
-      subtitle="Auto-generated synthesis of the metrics above — observations only, drawn from the reported figures."
+      subtitle="Auto-generated synthesis of the metrics above; observations only, drawn from the reported figures."
       summary={
         <ul className="m-0 list-disc space-y-2 pl-5">
           <li>
-            The 2027–43 market CAGR is {formatPercent(actualCagr, 1)} versus {formatPercent(forecastCagr, 1)} in the{" "}
+            The 2027-43 market CAGR is {formatPercent(actualCagr, 1)} versus {formatPercent(forecastCagr, 1)} in the{" "}
             {FORECAST_LABEL}; the advanced-LLT pool increased ~{formatPercent(poolGrowth, 0)} over six months.
           </li>
           <li>
@@ -351,7 +351,7 @@ export function ExecutiveDashboard({ data }: { data: DashboardData }) {
         <MetricCard
           label="Market CAGR"
           value={formatPercent(actualCagr, 1)}
-          valueSuffix="(2027–43)"
+          valueSuffix="(2027-43)"
           detail={`+${((actualCagr - forecastCagr) * 100).toFixed(1)} pt vs ${formatPercent(forecastCagr, 1)} ${FORECAST_LABEL}`}
           detailClassName="text-success"
         />
@@ -366,17 +366,6 @@ export function ExecutiveDashboard({ data }: { data: DashboardData }) {
           label="Segments showing meaningful movement"
           value={`${topMovers.length}/${data.segments.length}`}
           valueSuffix={`(${ACTUALS_PERIOD})`}
-          detail={
-            <ul className="space-y-0.5 text-[10.5px] font-medium text-content/75">
-              {topMovers.map((segment) => (
-                <li key={segment.name} title={segment.name}>
-                  <span className="mr-1 text-accent">•</span>
-                  {segment.name}
-                </li>
-              ))}
-            </ul>
-          }
-          detailClassName="text-content"
         />
       </div>
 

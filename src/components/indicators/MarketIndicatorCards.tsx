@@ -118,7 +118,7 @@ export function NpsMarketShareCard({ points, productName }: { points: NpsPoint[]
   const visible = takeForBucket(points, bucket);
   const firstPeriod = visible[0]?.label ?? ACTUALS_PERIOD;
   const lastPeriod = visible.at(-1)?.label ?? ACTUALS_PERIOD;
-  const actualsLabel = `Actuals (${firstPeriod}–${lastPeriod})`;
+  const actualsLabel = `Actuals (${firstPeriod}-${lastPeriod})`;
 
   const data: ChartData<"line", number[], string> = {
     labels: visible.map((point) => point.label),
@@ -252,7 +252,7 @@ export function PatientInflowCard({ points, productName }: { points: InflowPoint
   const { bucket } = useDashboard();
   const colors = useChartColors();
   const visible = takeForBucket(points, bucket);
-  const periodLabel = `${visible[0]?.label ?? ACTUALS_PERIOD}–${visible.at(-1)?.label ?? ACTUALS_PERIOD}`;
+  const periodLabel = `${visible[0]?.label ?? ACTUALS_PERIOD}-${visible.at(-1)?.label ?? ACTUALS_PERIOD}`;
 
   const data: ChartData<"line", number[], string> = {
     labels: visible.map((point) => point.label),
@@ -440,7 +440,7 @@ export function ComplianceCard({ points, productName }: { points: ComparisonPoin
   const { bucket } = useDashboard();
   const colors = useChartColors();
   const visible = takeForBucket(points, bucket);
-  const actualsLabel = `${productName} compliance (${visible[0]?.label ?? ACTUALS_PERIOD}–${visible.at(-1)?.label ?? ACTUALS_PERIOD})`;
+  const actualsLabel = `${productName} compliance (${visible[0]?.label ?? ACTUALS_PERIOD}-${visible.at(-1)?.label ?? ACTUALS_PERIOD})`;
 
   const data: ChartData<"line", number[], string> = {
     labels: visible.map((point) => point.label),
@@ -545,7 +545,7 @@ export function DemandCard({ points }: { points: ComparisonPoint[] }) {
 
   return (
     <DashboardCard>
-      <CardHeader title={`New-patient demand (NPS) — vs ${FORECAST_LABEL.toLowerCase()}`} />
+      <CardHeader title={`New-patient demand (NPS): vs ${FORECAST_LABEL.toLowerCase()}`} />
       <Legend>
         <LegendItem color="var(--color-orange)" label={`Actual NPS (through ${visible.at(-1)?.label ?? ACTUALS_PERIOD})`} />
         <LegendItem color="var(--color-muted)" label={`Forecast NPS (${FORECAST_REFRESH_PERIOD})`} />

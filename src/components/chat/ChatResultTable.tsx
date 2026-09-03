@@ -9,7 +9,7 @@ function formatHeader(value: string) {
 }
 
 function formatCell(value: unknown) {
-  if (value === null || value === undefined || value === "") return "–";
+  if (value === null || value === undefined || value === "") return "-";
   if (typeof value === "number") {
     return value.toLocaleString("en-US", { maximumFractionDigits: 2 });
   }

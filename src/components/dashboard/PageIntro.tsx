@@ -19,7 +19,7 @@ export function SectionHeading({ title, question }: { title: string; question: s
   return (
     <div className="mb-2.5 mt-6">
       <h2 className="m-0 text-[15px] font-bold text-content">
-        {title} <span className="text-[12.5px] font-normal text-muted">— {question}</span>
+        {title} <span className="text-[12.5px] font-normal text-muted">: {question}</span>
       </h2>
     </div>
   );
