@@ -28,6 +28,43 @@ function sourceSummary(data: ChatBootstrapData | null) {
   return `${data.diseaseArea.diseasearea_name} · ${total} knowledge source${total === 1 ? "" : "s"} ready`;
 }
 
+function questionPreview(content: string) {
+  const preview = content.replaceAll("\n", " ").trim();
+  return preview.length > 58 ? `${preview.slice(0, 57).trim()}...` : preview;
+}
+
+function JumpToQuestion({
+  questions,
+  onJump,
+}: {
+  questions: ChatMessageModel[];
+  onJump: (messageId: string) => void;
+}) {
+  return (
+    <label className="relative ml-auto inline-flex items-center" htmlFor="jump-to-question">
+      <span className="sr-only">Jump to question</span>
+      <select
+        id="jump-to-question"
+        defaultValue=""
+        onChange={(event) => {
+          if (!event.target.value) return;
+          onJump(event.target.value);
+          event.target.value = "";
+        }}
+        className="h-7 w-[178px] cursor-pointer appearance-none rounded-lg border border-white/20 bg-white/10 py-1 pl-2.5 pr-7 text-[10px] font-semibold text-white shadow-sm outline-none transition hover:border-white/30 hover:bg-white/20 focus:border-white/50 focus:ring-2 focus:ring-white/40"
+      >
+        <option value="" className="text-content">Jump to question</option>
+        {questions.map((message, index) => (
+          <option key={message.id} value={message.id} className="text-content">
+            {`Q${index + 1}: ${questionPreview(message.content)}`}
+          </option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-primary-soft" aria-hidden="true" />
+    </label>
+  );
+}
+
 export function ChatAssistantPanel({
   messages,
   inputValue,
@@ -62,7 +99,7 @@ export function ChatAssistantPanel({
       aria-labelledby="chat-assistant-title"
       className="chat-panel-enter fixed inset-y-0 right-0 z-[70] flex w-full flex-col overflow-hidden border-l border-primary/15 bg-page shadow-[-20px_0_54px_rgba(8,50,96,0.2)] sm:w-[min(560px,94vw)] xl:w-[38vw]"
     >
-      <header className="relative shrink-0 overflow-hidden bg-gradient-to-r from-primary-deep via-primary to-secondary px-4 pb-3 pt-4 text-white">
+      <header className="relative shrink-0 overflow-visible bg-gradient-to-r from-primary-deep via-primary to-secondary px-4 pb-3 pt-4 text-white">
         <div aria-hidden="true" className="absolute -right-12 -top-16 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
         <div className="relative flex items-center gap-3">
           <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent text-primary-deep shadow-md">
@@ -95,22 +132,10 @@ export function ChatAssistantPanel({
             </span>
           ) : null}
           {questions.length > 1 ? (
-            <label className="relative ml-auto">
-              <span className="sr-only">Jump to a question</span>
-              <select
-                defaultValue=""
-                onChange={(event) => {
-                  const node = messageRefs.current.get(event.target.value);
-                  node?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  event.target.value = "";
-                }}
-                className="appearance-none rounded-full border border-white/15 bg-white/10 py-1 pl-2.5 pr-6 text-[9px] font-semibold text-white outline-none"
-              >
-                <option value="" disabled className="text-content">Jump to question</option>
-                {questions.map((message, index) => <option key={message.id} value={message.id} className="text-content">Q{index + 1}: {message.content.slice(0, 48)}</option>)}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2" aria-hidden="true" />
-            </label>
+            <JumpToQuestion
+              questions={questions}
+              onJump={(messageId) => messageRefs.current.get(messageId)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            />
           ) : null}
         </div>
       </header>

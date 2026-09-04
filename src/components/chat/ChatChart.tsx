@@ -34,13 +34,38 @@ function fallbackOption(chart: ChartPayload): echarts.EChartsOption {
   };
 }
 
+function normalizeChartOption(option: echarts.EChartsOption): echarts.EChartsOption {
+  const title = Array.isArray(option.title)
+    ? option.title.map((item) => ({ ...item, show: false }))
+    : option.title
+      ? { ...option.title, show: false }
+      : undefined;
+
+  const legend = Array.isArray(option.legend)
+    ? option.legend.map((item) => ({ ...item, top: 8, bottom: undefined }))
+    : option.legend
+      ? { ...option.legend, top: 8, bottom: undefined }
+      : undefined;
+
+  const grid = Array.isArray(option.grid)
+    ? option.grid.map((item) => ({ ...item, top: 58 }))
+    : { ...(option.grid || {}), top: 58 };
+
+  return {
+    ...option,
+    title,
+    legend,
+    grid,
+  };
+}
+
 function ChartCanvas({ chart }: { chart: ChartPayload }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
     const instance = echarts.init(containerRef.current);
-    const option = (chart.echartsOption || fallbackOption(chart)) as echarts.EChartsOption;
+    const option = normalizeChartOption((chart.echartsOption || fallbackOption(chart)) as echarts.EChartsOption);
     instance.setOption({
       ...option,
       animationDuration: 550,
@@ -90,7 +115,7 @@ export function ChatChartGroup({ group }: { group: ChartGroup }) {
               id={selectId}
               value={selectedIndex}
               onChange={(event) => setSelectedIndex(Number(event.target.value))}
-              className="appearance-none rounded-lg border border-primary/15 bg-page py-1.5 pl-2.5 pr-7 text-[10px] font-semibold text-primary outline-none focus:border-secondary"
+              className="cursor-pointer appearance-none rounded-lg border border-primary/15 bg-page py-1.5 pl-2.5 pr-7 text-[10px] font-semibold text-primary outline-none focus:border-secondary"
             >
               {options.map((label, index) => <option key={`${label}-${index}`} value={index}>{label}</option>)}
             </select>

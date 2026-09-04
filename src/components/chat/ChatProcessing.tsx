@@ -26,7 +26,7 @@ export function DocumentProcessing({ steps }: { steps: ProcessingStep[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const contentId = useId();
   const activeStep = steps.at(-1);
-  const status = activeStep ? stepLabel(activeStep) : "Preparing InsightSphere";
+  const status = activeStep ? stepLabel(activeStep) : "Preparing response";
 
   return (
     <section role="status" aria-live="polite" className="w-fit max-w-[min(22rem,calc(100vw-5.5rem))] overflow-hidden rounded-2xl rounded-tl-sm border border-primary/10 bg-surface shadow-sm">

@@ -31,7 +31,7 @@ export function ChatAssistant({ children }: { children: ReactNode }) {
 
       {isOpen ? (
         <>
-          <button type="button" tabIndex={-1} aria-label="Close Chat Assistant" onClick={closeAssistant} className="fixed inset-0 z-[65] cursor-default bg-primary-deep/25 backdrop-blur-[1px] xl:hidden" />
+          <button type="button" tabIndex={-1} aria-label="Close Chat Assistant" onClick={closeAssistant} className="fixed inset-0 z-[65] cursor-pointer bg-primary-deep/25 backdrop-blur-[1px] xl:hidden" />
           <ChatAssistantPanel
             messages={chat.messages}
             inputValue={chat.inputValue}
