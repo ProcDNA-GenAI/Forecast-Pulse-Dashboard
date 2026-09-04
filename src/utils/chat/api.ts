@@ -20,6 +20,8 @@ import type {
 } from "./types";
 
 type BackendChartConfig = {
+  should_chart?: boolean;
+  reason?: string;
   chart_type?: string;
   type?: string;
   title?: string;
@@ -174,6 +176,7 @@ function normalizeStepStatus(value: unknown): ProcessingStep["status"] {
 
 function toChartPayload(config: BackendChartConfig | null | undefined): ChartPayload | null {
   if (!config) return null;
+  if (config.should_chart === false) return null;
   const kind = (config.chart_type || config.type || "chart").toLowerCase();
   if (kind === "none" || kind === "table") return null;
 

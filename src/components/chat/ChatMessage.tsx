@@ -178,7 +178,14 @@ function AssistantAnswer({ message, onAsk }: { message: ChatMessageModel; onAsk:
             ) : null}
 
             {meta?.streamingChart ? <StreamingChatChart chart={meta.streamingChart} /> : null}
-            {chartGroups.map((group, index) => <ChatChartGroup key={`${group.title || "chart"}-${index}`} group={group} />)}
+            {chartGroups.map((group, index) => (
+              <ChatChartGroup
+                key={`${group.title || "chart"}-${index}`}
+                group={group}
+                groupIndex={index}
+                messageId={message.backendId}
+              />
+            ))}
 
             {message.content ? (
               <div className="chat-markdown text-[13px] leading-[1.6] text-content">

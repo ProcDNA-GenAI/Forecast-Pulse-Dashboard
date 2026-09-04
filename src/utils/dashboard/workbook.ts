@@ -101,6 +101,14 @@ function findHeaderRow(
   throw new Error(`Could not find headers "${expected}" in sheet "${worksheet.name}".`);
 }
 
+function findOptionalHeaderColumn(worksheet: ExcelJS.Worksheet, headerRow: number, header: string): number | null {
+  for (let column = 1; column <= worksheet.columnCount; column += 1) {
+    if (cellValue(worksheet, headerRow, column) === header) return column;
+  }
+
+  return null;
+}
+
 function excelDate(value: unknown, context: string): Date {
   let date: Date;
 
@@ -271,8 +279,8 @@ function normalizePercentageShares<T extends { share: number }>(shares: T[], row
     return shares;
   }
 
-  if (total <= 0 || Math.abs(total - 1) > 0.02) {
-    throw new Error(`Product mix percentages for ${rowLabel} must total close to 100%.`);
+  if (total < 0.9 || total > 1.1) {
+    throw new Error(`Product mix percentages for ${rowLabel} must total between 90% and 110%.`);
   }
 
   return shares.map((item) => ({
@@ -429,6 +437,7 @@ function latestEvidence(
 
 function readAssumptions(worksheet: ExcelJS.Worksheet): Assumption[] {
   const headerRow = findHeaderRow(worksheet, [[2, "Assumption"], [3, "Base Forecast"], [7, "Status"]]);
+  const sourceColumn = findOptionalHeaderColumn(worksheet, headerRow, "Source");
   const result: Assumption[] = [];
 
   for (let row = headerRow + 1; row <= worksheet.rowCount; row += 1) {
@@ -440,6 +449,8 @@ function readAssumptions(worksheet: ExcelJS.Worksheet): Assumption[] {
     const evidence = latestEvidence(worksheet, row, headerRow);
     const current = parseNumberFromLabel(evidence.value, `${worksheet.name} row ${row}`);
     const sourceStatus = textValue(cellValue(worksheet, row, 7), `${worksheet.name}!G${row}`);
+    const sourceValue = sourceColumn ? cellValue(worksheet, row, sourceColumn) : null;
+    const source = typeof sourceValue === "string" && sourceValue.length > 0 ? sourceValue : evidence.source;
 
     result.push({
       name: rawName,
@@ -447,7 +458,7 @@ function readAssumptions(worksheet: ExcelJS.Worksheet): Assumption[] {
       current,
       variance: current - forecast,
       unit,
-      source: evidence.source,
+      source,
       sourceStatus,
       status: mapAssumptionStatus(sourceStatus),
       forecastDigits: assumptionDigits(rawName, true),
