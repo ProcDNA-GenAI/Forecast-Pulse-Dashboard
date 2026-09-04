@@ -12,7 +12,7 @@ const tabs = [
   { href: "/key-market-indicators", label: "Market Intelligence" },
 ];
 
-const buckets: TimeBucket[] = ["QYD", "YTD", "LTD"];
+const buckets: TimeBucket[] = ["QTD", "YTD", "LTD"];
 
 export function DashboardHeader() {
   const pathname = usePathname();
@@ -87,7 +87,7 @@ export function DashboardHeader() {
             ))}
           </div>
           <span className="ml-auto hidden text-right lg:block">
-            QYD quarter-to-date · YTD year-to-date · LTD launch-to-date · applies to time-series tiles only
+            QTD quarter-to-date · YTD year-to-date · LTD launch-to-date · applies to time-series tiles only
           </span>
         </div>
       ) : null}

@@ -2,7 +2,7 @@ import type { Assumption, ComparisonPoint, TrendPoint } from "./types";
 import type { TimeBucket } from "@/components/dashboard/DashboardProvider";
 
 export function takeForBucket<T>(items: T[], bucket: TimeBucket): T[] {
-  const requestedLength = bucket === "QYD" ? 3 : bucket === "YTD" ? 12 : items.length;
+  const requestedLength = bucket === "QTD" ? 3 : bucket === "YTD" ? 12 : items.length;
   return items.slice(-Math.min(requestedLength, items.length));
 }
 

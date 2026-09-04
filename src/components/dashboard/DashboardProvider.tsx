@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 
-export type TimeBucket = "QYD" | "YTD" | "LTD";
+export type TimeBucket = "QTD" | "YTD" | "LTD";
 
 type DashboardContextValue = {
   bucket: TimeBucket;

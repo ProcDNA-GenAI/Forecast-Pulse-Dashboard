@@ -87,8 +87,7 @@ export function ProductMixCard({ points }: { points: ProductMixPoint[] }) {
   return (
     <DashboardCard>
       <CardHeader
-        title="LLT product mix"
-        subtitle="monthly share of the non-statin add-on class"
+        title="LLT Patient Mix"
         action={
           <MiniButton onClick={() => setMode((current) => (current === "pct" ? "count" : "pct"))}>
             {mode === "pct" ? "Show patient count" : "Show % share"}
@@ -174,7 +173,6 @@ export function NpsMarketShareCard({ points, productName }: { points: NpsPoint[]
     <DashboardCard>
       <CardHeader
         title={`${productName} NPS ${mode === "share" ? "market share" : "counts"}`}
-        subtitle="Actual calendar months"
         action={
           <MiniButton onClick={() => setMode((current) => (current === "share" ? "count" : "share"))}>
             {mode === "share" ? "Show NPS counts" : "Show NPS share"}
@@ -487,7 +485,7 @@ export function ComplianceCard({ points, productName }: { points: ComparisonPoin
 
   return (
     <DashboardCard>
-      <CardHeader title="Compliance" subtitle="claims-based medication adherence" />
+      <CardHeader title="Compliance" />
       <Legend>
         <LegendItem color="var(--color-teal)" kind="line" label={actualsLabel} />
         <LegendItem color="var(--color-muted)" kind="line" dashed label={FORECAST_LABEL} />
