@@ -3,6 +3,7 @@ import "server-only";
 import { stat } from "node:fs/promises";
 import path from "node:path";
 import ExcelJS from "exceljs";
+import { withDisplayProductName } from "@/utils/product-name";
 import type {
   Assumption,
   AssumptionStatus,
@@ -109,6 +110,25 @@ function findOptionalHeaderColumn(worksheet: ExcelJS.Worksheet, headerRow: numbe
   return null;
 }
 
+function findHeaderColumn(worksheet: ExcelJS.Worksheet, headerRow: number, header: string): number {
+  const column = findOptionalHeaderColumn(worksheet, headerRow, header);
+
+  if (column === null) {
+    throw new Error(`Could not find header "${header}" in sheet "${worksheet.name}".`);
+  }
+
+  return column;
+}
+
+function findHeaderRowByNames(worksheet: ExcelJS.Worksheet, headers: string[]): number {
+  for (let rowNumber = 1; rowNumber <= worksheet.rowCount; rowNumber += 1) {
+    const matches = headers.every((header) => findOptionalHeaderColumn(worksheet, rowNumber, header) !== null);
+    if (matches) return rowNumber;
+  }
+
+  throw new Error(`Could not find headers "${headers.join(", ")}" in sheet "${worksheet.name}".`);
+}
+
 function excelDate(value: unknown, context: string): Date {
   let date: Date;
 
@@ -166,7 +186,9 @@ function readProductName(sourceWorksheet: ExcelJS.Worksheet): string {
     throw new Error("The product name could not be read from the source worksheet name.");
   }
 
-  return sourceWorksheet.name.slice(prefix.length, sourceWorksheet.name.length - suffix.length);
+  return withDisplayProductName(
+    sourceWorksheet.name.slice(prefix.length, sourceWorksheet.name.length - suffix.length),
+  );
 }
 
 function readMarket(worksheet: ExcelJS.Worksheet): MarketPoint[] {
@@ -203,13 +225,14 @@ function readSegments(worksheet: ExcelJS.Worksheet): PatientSegment[] {
 
     const forecast = numberValue(cellValue(worksheet, row, 3), `${worksheet.name}!C${row}`);
     const latest = numberValue(cellValue(worksheet, row, 4), `${worksheet.name}!D${row}`);
+    const name = withDisplayProductName(rawName);
 
     result.push({
-      name: rawName,
+      name,
       forecast,
       latest,
       change: latest - forecast,
-      group: segmentGroup(rawName),
+      group: segmentGroup(name),
     });
   }
 
@@ -217,24 +240,37 @@ function readSegments(worksheet: ExcelJS.Worksheet): PatientSegment[] {
 }
 
 function readNpsShare(worksheet: ExcelJS.Worksheet): NpsPoint[] {
-  const headerRow = findHeaderRow(worksheet, [
-    [2, "Month"],
-    [10, "Modelled Curve"],
-    [14, "Forecast NPS Count"],
-    [15, "Actual NPS Count"],
-  ]);
+  const headers = ["Month", "Modelled Curve", "Lipfendra Uptake", "Forecast NPS Count", "Actual NPS Count"];
+  const headerRow = findHeaderRowByNames(worksheet, headers);
+  const monthColumn = findHeaderColumn(worksheet, headerRow, "Month");
+  const forecastColumn = findHeaderColumn(worksheet, headerRow, "Modelled Curve");
+  const actualColumn = findHeaderColumn(worksheet, headerRow, "Lipfendra Uptake");
+  const forecastCountColumn = findHeaderColumn(worksheet, headerRow, "Forecast NPS Count");
+  const actualCountColumn = findHeaderColumn(worksheet, headerRow, "Actual NPS Count");
   const result: NpsPoint[] = [];
 
   for (let row = headerRow + 1; row <= worksheet.rowCount; row += 1) {
-    const actual = optionalNumber(cellValue(worksheet, row, 11));
+    const actual = optionalNumber(cellValue(worksheet, row, actualColumn));
     if (actual === null) break;
 
     result.push({
-      label: excelDateLabel(cellValue(worksheet, row, 2), `${worksheet.name}!B${row}`),
-      forecast: numberValue(cellValue(worksheet, row, 10), `${worksheet.name}!J${row}`),
+      label: excelDateLabel(
+        cellValue(worksheet, row, monthColumn),
+        `${worksheet.name}!${worksheet.getColumn(monthColumn).letter}${row}`,
+      ),
+      forecast: numberValue(
+        cellValue(worksheet, row, forecastColumn),
+        `${worksheet.name}!${worksheet.getColumn(forecastColumn).letter}${row}`,
+      ),
       actual,
-      forecastCount: numberValue(cellValue(worksheet, row, 14), `${worksheet.name}!N${row}`),
-      actualCount: numberValue(cellValue(worksheet, row, 15), `${worksheet.name}!O${row}`),
+      forecastCount: numberValue(
+        cellValue(worksheet, row, forecastCountColumn),
+        `${worksheet.name}!${worksheet.getColumn(forecastCountColumn).letter}${row}`,
+      ),
+      actualCount: numberValue(
+        cellValue(worksheet, row, actualCountColumn),
+        `${worksheet.name}!${worksheet.getColumn(actualCountColumn).letter}${row}`,
+      ),
     });
   }
 
@@ -250,7 +286,7 @@ function readProductMix(worksheet: ExcelJS.Worksheet): ProductMixPoint[] {
     if (typeof header !== "string" || header.length === 0) break;
     products.push({
       column,
-      product: header.endsWith(" share") ? header.slice(0, -6) : header,
+      product: withDisplayProductName(header.endsWith(" share") ? header.slice(0, -6) : header),
     });
   }
 
@@ -297,7 +333,7 @@ function readPrescribers(worksheet: ExcelJS.Worksheet): PrescriberPoint[] {
     const specialty = cellValue(worksheet, row, 1);
     if (typeof specialty !== "string" || specialty.length === 0) break;
     result.push({
-      specialty,
+      specialty: withDisplayProductName(specialty),
       writers: numberValue(cellValue(worksheet, row, 2), `${worksheet.name}!B${row}`),
       prescriptionsPerWriter: numberValue(cellValue(worksheet, row, 3), `${worksheet.name}!C${row}`),
     });
@@ -362,37 +398,26 @@ function readPoolAndHcp(worksheet: ExcelJS.Worksheet): { advancedPool: TrendPoin
   return { advancedPool, activeHcp };
 }
 
-function readDemandAndPersistency(worksheet: ExcelJS.Worksheet): {
-  demand: ComparisonPoint[];
-  persistency: ComparisonPoint[];
-} {
-  const headerRow = findHeaderRow(worksheet, [[2, "Month"], [3, "Forecasted NPS"], [7, "Month"]]);
-  const demand: ComparisonPoint[] = [];
+function readPersistency(worksheet: ExcelJS.Worksheet): ComparisonPoint[] {
+  const headerRow = findHeaderRow(worksheet, [
+    [7, "Month"],
+    [8, "New Forecast Blended Curve"],
+    [9, "Lipfendra persitency"],
+  ]);
   const persistency: ComparisonPoint[] = [];
 
   for (let row = headerRow + 1; row <= worksheet.rowCount; row += 1) {
-    const demandActual = optionalNumber(cellValue(worksheet, row, 4));
     const persistencyActual = optionalNumber(cellValue(worksheet, row, 9));
-    if (demandActual === null && persistencyActual === null) break;
+    if (persistencyActual === null) break;
 
-    if (demandActual !== null) {
-      demand.push({
-        label: excelDateLabel(cellValue(worksheet, row, 2), `${worksheet.name}!B${row}`),
-        forecast: numberValue(cellValue(worksheet, row, 3), `${worksheet.name}!C${row}`),
-        actual: demandActual,
-      });
-    }
-
-    if (persistencyActual !== null) {
-      persistency.push({
-        label: launchMonthLabel(cellValue(worksheet, row, 7), `${worksheet.name}!G${row}`),
-        forecast: numberValue(cellValue(worksheet, row, 8), `${worksheet.name}!H${row}`),
-        actual: persistencyActual,
-      });
-    }
+    persistency.push({
+      label: launchMonthLabel(cellValue(worksheet, row, 7), `${worksheet.name}!G${row}`),
+      forecast: numberValue(cellValue(worksheet, row, 8), `${worksheet.name}!H${row}`),
+      actual: persistencyActual,
+    });
   }
 
-  return { demand, persistency };
+  return persistency;
 }
 
 function mapAssumptionStatus(sourceStatus: string): AssumptionStatus {
@@ -427,7 +452,7 @@ function latestEvidence(
 
       return {
         value,
-        source: `${worksheet.name} · ${evidencePeriod}`,
+        source: withDisplayProductName(`${worksheet.name} · ${evidencePeriod}`),
       };
     }
   }
@@ -450,10 +475,12 @@ function readAssumptions(worksheet: ExcelJS.Worksheet): Assumption[] {
     const current = parseNumberFromLabel(evidence.value, `${worksheet.name} row ${row}`);
     const sourceStatus = textValue(cellValue(worksheet, row, 7), `${worksheet.name}!G${row}`);
     const sourceValue = sourceColumn ? cellValue(worksheet, row, sourceColumn) : null;
-    const source = typeof sourceValue === "string" && sourceValue.length > 0 ? sourceValue : evidence.source;
+    const source = withDisplayProductName(
+      typeof sourceValue === "string" && sourceValue.length > 0 ? sourceValue : evidence.source,
+    );
 
     result.push({
-      name: rawName,
+      name: withDisplayProductName(rawName),
       forecast,
       current,
       variance: current - forecast,
@@ -478,13 +505,13 @@ async function readDashboardData(): Promise<DashboardData> {
     (worksheet) => worksheet.name.startsWith("Source of ") && worksheet.name.endsWith(" starts"),
     "patient starts",
   );
-  const demandWorksheet = findWorksheet(
+  const persistencyWorksheet = findWorksheet(
     workbook,
     (worksheet) => worksheet.name.endsWith(" NPS and Persistency"),
     "NPS and persistency",
   );
   const { advancedPool, activeHcp } = readPoolAndHcp(sourceWorksheet);
-  const { demand, persistency } = readDemandAndPersistency(demandWorksheet);
+  const persistency = readPersistency(persistencyWorksheet);
 
   const data: DashboardData = {
     meta: { productName: readProductName(sourceWorksheet) },
@@ -495,7 +522,6 @@ async function readDashboardData(): Promise<DashboardData> {
     advancedPool,
     activeHcp,
     inflow: readInflow(sourceWorksheet),
-    demand,
     persistency,
     compliance: readCompliance(requireWorksheet(workbook, "Compliance")),
     prescribers: readPrescribers(requireWorksheet(workbook, "Prescriber Breadth Depth")),
@@ -515,7 +541,6 @@ function validateDashboardData(data: DashboardData): void {
     ["advanced-LLT pool", data.advancedPool.length],
     ["active HCP universe", data.activeHcp.length],
     ["patient inflow", data.inflow.length],
-    ["new-patient demand", data.demand.length],
     ["persistency", data.persistency.length],
     ["compliance", data.compliance.length],
     ["prescriber breadth and depth", data.prescribers.length],

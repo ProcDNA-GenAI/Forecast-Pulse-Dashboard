@@ -80,7 +80,6 @@ export type DashboardData = {
   advancedPool: TrendPoint[];
   activeHcp: TrendPoint[];
   inflow: InflowPoint[];
-  demand: ComparisonPoint[];
   persistency: ComparisonPoint[];
   compliance: ComparisonPoint[];
   prescribers: PrescriberPoint[];

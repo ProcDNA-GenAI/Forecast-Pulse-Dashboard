@@ -5,7 +5,6 @@ import { AiSummaryPanel } from "@/components/dashboard/AiSummaryPanel";
 import { PageIntro } from "@/components/dashboard/PageIntro";
 import {
   ComplianceCard,
-  DemandCard,
   NpsMarketShareCard,
   PatientInflowCard,
   PersistencyCard,
@@ -15,35 +14,50 @@ import {
 } from "./MarketIndicatorCards";
 import { formatPercent, latestComparison, latestPoint } from "@/utils/dashboard/formatters";
 import type { DashboardData } from "@/utils/dashboard/types";
-import { FORECAST_LABEL, FORECAST_REFRESH_PERIOD } from "@/utils/dashboard/periods";
+import { DATA_AS_OF_PERIOD, FORECAST_LABEL } from "@/utils/dashboard/periods";
 
-function IndicatorsSummary({ data }: { data: DashboardData }) {
+type IndicatorView = "market" | "launch";
+
+function IndicatorsSummary({ data, activeView }: { data: DashboardData; activeView: IndicatorView }) {
   const share = latestComparison(data.npsShare);
+  const firstMix = data.productMix[0];
+  const lastMix = data.productMix.at(-1);
   const firstHcp = data.activeHcp[0];
   const lastHcp = latestPoint(data.activeHcp);
-  const firstInflow = data.inflow[0];
   const lastInflow = data.inflow.at(-1);
+  const persistency = latestComparison(data.persistency);
+  const compliance = latestComparison(data.compliance);
 
-  if (!firstInflow || !lastInflow) {
-    throw new Error("Patient inflow data is required for the indicator summary.");
+  if (!firstMix || !lastMix || !firstHcp || !lastInflow) {
+    throw new Error("Market indicator data is required for Key Insights.");
   }
 
   return (
     <AiSummaryPanel
-      title="What the market indicators show"
-      subtitle="Auto-generated synthesis of the tiles above; observations only."
       summary={
         <ul className="m-0 list-disc space-y-2 pl-5">
-          <li>
-            {data.meta.productName}&apos;s NPS market share is running slightly above the {FORECAST_LABEL.toLowerCase()} curve: {formatPercent(share.actual, 1)} actual versus {formatPercent(share.forecast, 1)} forecast at {share.label}.
-          </li>
-          <li>
-            The advanced-LLT patient pool is expanding and the active HCP universe is broadening from {firstHcp.value.toLocaleString()} to {lastHcp.value.toLocaleString()}.
-          </li>
-          <li>
-            Most new starts are switches from other advanced brands, approximately {formatPercent(lastInflow.switchFromAdvanced, 0)}, while newly-intensified starts rose from {formatPercent(firstInflow.newlyIntensified, 0)} to {formatPercent(lastInflow.newlyIntensified, 0)}.
-          </li>
-          <li>Persistency and new-patient demand are tracking ahead of forecast.</li>
+          {activeView === "market" ? (
+            <>
+              <li>
+                The advanced LLT patient pool changed from {firstMix.totalPatientsMillions.toFixed(2)}M in {firstMix.label} to {lastMix.totalPatientsMillions.toFixed(2)}M in {lastMix.label}.
+              </li>
+              <li>
+                The active HCP universe increased from {firstHcp.value.toLocaleString()} in {firstHcp.label} to {lastHcp.value.toLocaleString()} in {lastHcp.label}.
+              </li>
+            </>
+          ) : (
+            <>
+              <li>
+                {data.meta.productName}&apos;s NPS market share is {formatPercent(share.actual, 1)} compared with {formatPercent(share.forecast, 1)} in the {FORECAST_LABEL} at {share.label}.
+              </li>
+              <li>
+                At {lastInflow.label}, {formatPercent(lastInflow.switchFromAdvanced, 0)} of starts are switches from other advanced brands and {formatPercent(lastInflow.newlyIntensified, 0)} are newly intensified.
+              </li>
+              <li>
+                Persistency is {formatPercent(persistency.actual, 0)} compared with {formatPercent(persistency.forecast, 0)} in the {FORECAST_LABEL} at {persistency.label}. Compliance is {formatPercent(compliance.actual, 0)} compared with {formatPercent(compliance.forecast, 0)} at {compliance.label}.
+              </li>
+            </>
+          )}
         </ul>
       }
     />
@@ -51,7 +65,7 @@ function IndicatorsSummary({ data }: { data: DashboardData }) {
 }
 
 export function MarketIndicatorsDashboard({ data }: { data: DashboardData }) {
-  const [activeView, setActiveView] = useState<"market" | "launch">("market");
+  const [activeView, setActiveView] = useState<IndicatorView>("market");
 
   return (
     <>
@@ -87,12 +101,13 @@ export function MarketIndicatorsDashboard({ data }: { data: DashboardData }) {
         </div>
       </div>
 
+      <div className="mb-4">
+        <IndicatorsSummary data={data} activeView={activeView} />
+      </div>
+
       {activeView === "market" ? (
-        <section role="tabpanel" aria-label="Market Intelligence" className="space-y-4">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <ProductMixCard points={data.productMix} />
-            <NpsMarketShareCard points={data.npsShare} productName={data.meta.productName} />
-          </div>
+        <section role="tabpanel" aria-label="Market Intelligence" className="grid gap-4 lg:grid-cols-2">
+          <ProductMixCard points={data.productMix} />
           <TrendCard
             title="Active HCP universe"
             points={data.activeHcp}
@@ -109,17 +124,14 @@ export function MarketIndicatorsDashboard({ data }: { data: DashboardData }) {
             <ComplianceCard points={data.compliance} productName={data.meta.productName} />
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
-            <DemandCard points={data.demand} />
+            <NpsMarketShareCard points={data.npsShare} productName={data.meta.productName} />
             <PrescriberCard points={data.prescribers} />
           </div>
         </section>
       )}
 
-      <IndicatorsSummary data={data} />
-
       <footer className="mt-5 border-t border-border pt-3 text-[11.5px] text-muted">
-        Data as of 18 Aug 2026 · all comparisons vs. Forecast ({FORECAST_REFRESH_PERIOD}) · next refresh 25 Aug 2026 ·
-        illustrative mock data
+        Data as of {DATA_AS_OF_PERIOD} · all comparisons vs. {FORECAST_LABEL}
       </footer>
     </>
   );

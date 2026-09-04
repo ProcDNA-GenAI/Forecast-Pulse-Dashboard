@@ -4,7 +4,7 @@ import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { FORECAST_LABEL } from "@/utils/dashboard/periods";
+import { DATA_AS_OF_PERIOD, FORECAST_LABEL } from "@/utils/dashboard/periods";
 import { useDashboard, type TimeBucket } from "./DashboardProvider";
 
 const tabs = [
@@ -31,7 +31,7 @@ export function DashboardHeader() {
             </span>
           </span>
           <div className="ml-auto flex items-center gap-3 text-xs text-primary-soft">
-            <span className="hidden sm:inline">Data as of 18 Aug 2026 · vs. {FORECAST_LABEL}</span>
+            <span className="hidden sm:inline">Data as of {DATA_AS_OF_PERIOD} · vs. {FORECAST_LABEL}</span>
             <span className="h-4 w-px bg-white/15" aria-hidden="true" />
             <span className="max-w-28 truncate font-semibold text-white">{user?.displayName || user?.username}</span>
             <button

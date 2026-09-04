@@ -9,6 +9,7 @@ import { useId, useMemo, useState, type ReactNode } from "react";
 import type { AuthUser } from "@/utils/auth/types";
 import { formatDocumentAnswer } from "@/utils/chat/answer-format";
 import type { AnswerDataSource, ChatMessage as ChatMessageModel, DaeChunk } from "@/utils/chat/types";
+import { withDisplayProductName } from "@/utils/product-name";
 import { ChatChartGroup, StreamingChatChart } from "./ChatChart";
 import { ChatProcessing, DocumentProcessing } from "./ChatProcessing";
 import { ChatResultTable } from "./ChatResultTable";
@@ -34,7 +35,9 @@ function answerUrlTransform(url: string) {
 }
 
 function sourceName(source: AnswerDataSource) {
-  return source.full_name || source.full_path || source.table || source.source || source.schema || "Data source";
+  return withDisplayProductName(
+    source.full_name || source.full_path || source.table || source.source || source.schema || "Data source",
+  );
 }
 
 function findCitationChunk(label: string, chunks: DaeChunk[], chunkMap: Record<string, string>) {
@@ -136,7 +139,8 @@ function AssistantAnswer({ message, onAsk }: { message: ChatMessageModel; onAsk:
   const meta = message.meta;
   const dae = meta?.dae;
   const isDocumentAnswer = meta?.route === "DAE" || meta?.route === "BR";
-  const formattedContent = isDocumentAnswer ? formatDocumentAnswer(message.content) : message.content;
+  const displayContent = withDisplayProductName(message.content);
+  const formattedContent = isDocumentAnswer ? formatDocumentAnswer(displayContent) : displayContent;
   const markdown = isDocumentAnswer ? markCitations(formattedContent) : formattedContent;
   const chartGroups = meta?.chartGroups?.length
     ? meta.chartGroups
@@ -212,13 +216,17 @@ function AssistantAnswer({ message, onAsk }: { message: ChatMessageModel; onAsk:
               </div>
             ) : null}
 
-            {meta?.clarificationNeeded ? <Clarification prompt={meta.clarificationNeeded} onAsk={onAsk} /> : null}
+            {meta?.clarificationNeeded ? (
+              <Clarification prompt={withDisplayProductName(meta.clarificationNeeded)} onAsk={onAsk} />
+            ) : null}
 
             {meta?.insights?.length ? (
               <section className="mt-3 rounded-xl border border-accent/20 bg-accent/5 p-3">
                 <h4 className="flex items-center gap-1.5 text-xs font-bold text-primary"><Lightbulb className="h-3.5 w-3.5 text-accent" aria-hidden="true" />Key insights</h4>
                 <ul className="mt-2 list-disc space-y-1 pl-4 text-[11px] leading-4 text-content">
-                  {meta.insights.map((insight, index) => <li key={`${insight}-${index}`}>{insight}</li>)}
+                  {meta.insights.map((insight, index) => (
+                    <li key={`${insight}-${index}`}>{withDisplayProductName(insight)}</li>
+                  ))}
                 </ul>
               </section>
             ) : null}

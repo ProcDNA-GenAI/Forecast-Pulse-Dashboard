@@ -39,6 +39,12 @@ const segmentOptions = [
   { value: "ppno", label: "PP w/o T2D" },
 ] satisfies Array<{ value: SegmentFilter; label: string }>;
 
+const segmentGroupOrder: Record<SegmentGroup, number> = {
+  ascvd: 0,
+  ppt2d: 1,
+  ppno: 2,
+};
+
 function MetricCard({
   label,
   value,
@@ -71,10 +77,10 @@ function MarketSection({ data }: { data: DashboardData }) {
 
   return (
     <>
-      <SectionHeading title="Market" question="is it evolving as expected?" />
+      <SectionHeading prefix="Is " emphasis="market" suffix=" evolving as expected?" />
       <DashboardCard>
         <CardHeader
-          title="Treated LLT market: actuals vs forecast"
+          title={`Treated LLT market: ${ACTUALS_LABEL} vs ${FORECAST_LABEL}`}
           action={<DataTag>forecast refreshed {FORECAST_REFRESH_PERIOD}</DataTag>}
         />
         <Legend>
@@ -137,11 +143,20 @@ function PatientSection({ data }: { data: DashboardData }) {
   const [filter, setFilter] = useState<SegmentFilter>("all");
   const topMovers = useMemo(() => largestSegmentMovers(data.segments), [data.segments]);
   const topMoverNames = useMemo(() => new Set(topMovers.map((segment) => segment.name)), [topMovers]);
-  const visibleSegments = filter === "all" ? data.segments : data.segments.filter((segment) => segment.group === filter);
+  const visibleSegments = useMemo(() => {
+    const matchingSegments = filter === "all"
+      ? data.segments
+      : data.segments.filter((segment) => segment.group === filter);
+
+    return [...matchingSegments].sort((first, second) => {
+      const groupDifference = segmentGroupOrder[first.group] - segmentGroupOrder[second.group];
+      return groupDifference !== 0 ? groupDifference : second.change - first.change;
+    });
+  }, [data.segments, filter]);
 
   return (
     <>
-      <SectionHeading title="Patients" question="are they evolving as expected?" />
+      <SectionHeading prefix="Are " emphasis="patients" suffix=" evolving as expected?" />
       <DashboardCard>
         <CardHeader
           title={
@@ -164,7 +179,7 @@ function PatientSection({ data }: { data: DashboardData }) {
                 <th className="border-b border-border px-2 py-[7px] text-left">Category</th>
                 <th className="border-b border-border px-2 py-[7px] text-left">Patient segment</th>
                 <th className="border-b border-border px-2 py-[7px] text-right">{FORECAST_LABEL}</th>
-                <th className="border-b border-border px-2 py-[7px] text-right">Actuals ({ACTUALS_PERIOD})</th>
+                <th className="border-b border-border px-2 py-[7px] text-right">{ACTUALS_LABEL}</th>
                 <th className="border-b border-border px-2 py-[7px] text-right">Change</th>
               </tr>
             </thead>
@@ -216,16 +231,16 @@ function AssumptionSection({ data }: { data: DashboardData }) {
 
   return (
     <>
-      <SectionHeading title="Assumptions" question="are our launch assumptions holding?" />
+      <SectionHeading emphasis="Are our launch assumptions holding?" />
       <DashboardCard>
-        <CardHeader title="Base forecast vs actuals" action={<DataTag>latest evidence · Dec</DataTag>} />
+        <CardHeader title={`${FORECAST_LABEL} vs ${ACTUALS_LABEL}`} action={<DataTag>latest evidence · Dec &apos;26</DataTag>} />
         <div className="overflow-x-auto">
           <table className="mt-1.5 w-full min-w-[860px] border-separate border-spacing-0 text-[12.5px] tabular-nums">
             <thead>
               <tr className="text-[10px] uppercase tracking-[0.03em] text-muted">
                 <th className="border-b border-border px-[9px] py-[7px] text-left">Assumption</th>
                 <th className="border-b border-border px-[9px] py-[7px] text-right">{FORECAST_LABEL}</th>
-                <th className="border-b border-border px-[9px] py-[7px] text-right">Latest actuals (Dec evidence)</th>
+                <th className="border-b border-border px-[9px] py-[7px] text-right">Actuals (Dec &apos;26)</th>
                 <th className="border-b border-border px-[9px] py-[7px] text-right">Variance</th>
                 <th className="border-b border-border px-[9px] py-[7px] text-left">Source</th>
                 <th className="border-b border-border px-[9px] py-[7px] text-center">Status</th>
@@ -255,10 +270,9 @@ function AssumptionSection({ data }: { data: DashboardData }) {
                     <span
                       title={`${assumption.status} (${assumption.sourceStatus})`}
                       aria-label={assumption.status}
-                      className="inline-flex items-center gap-1.5 whitespace-nowrap font-semibold"
+                      className="inline-flex items-center justify-center"
                     >
-                      <span className={`inline-block h-2.5 w-2.5 rounded-full ${statusDotClass(assumption.status)}`} />
-                      {assumption.status}
+                      <span className={`inline-block h-3.5 w-3.5 rounded-full ring-2 ring-white shadow-sm ${statusDotClass(assumption.status)}`} />
                     </span>
                   </td>
                 </tr>
@@ -299,8 +313,6 @@ function ExecutiveSummaryPanel({ data }: { data: DashboardData }) {
 
   return (
     <AiSummaryPanel
-      title="What the latest evidence shows"
-      subtitle="Auto-generated synthesis of the metrics above; observations only, drawn from the reported figures."
       summary={
         <ul className="m-0 list-disc space-y-2 pl-5">
           <li>
@@ -311,7 +323,7 @@ function ExecutiveSummaryPanel({ data }: { data: DashboardData }) {
             {topMovers.length} of {data.segments.length} patient segments show meaningful movement: {topMovers.map((segment) => `${segment.name} (${formatPercentPoints(segment.change)})`).join("; ")}.
           </li>
           <li>
-            Escalation to advanced therapy is faster than forecast ({escalation.current.toFixed(1)} vs{" "}
+            Escalation to advanced therapy is faster than the {FORECAST_LABEL} ({escalation.current.toFixed(1)} vs{" "}
             {escalation.forecast.toFixed(1)} months), while access is {formatPercent(access.current, 0)} versus{" "}
             {formatPercent(access.forecast, 0)} in the {FORECAST_LABEL}.
           </li>
@@ -340,12 +352,16 @@ export function ExecutiveDashboard({ data }: { data: DashboardData }) {
         description="A real-time view of how the LDL-C market and patient dynamics are evolving versus our launch assumptions."
       />
 
+      <div className="mb-4">
+        <ExecutiveSummaryPanel data={data} />
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Treated LLT market"
           value={formatMillions(market2026.actual)}
           valueSuffix={`(${ACTUALS_PERIOD})`}
-          detail={`${FORECAST_LABEL}: ${formatMillions(market2026.forecast)} (${formatSignedPercent((market2026.actual - market2026.forecast) / market2026.forecast, 1)})`}
+          detail={`${formatSignedPercent((market2026.actual - market2026.forecast) / market2026.forecast, 1)} vs ${formatMillions(market2026.forecast)} ${FORECAST_LABEL}`}
           detailClassName="text-success"
         />
         <MetricCard
@@ -358,8 +374,8 @@ export function ExecutiveDashboard({ data }: { data: DashboardData }) {
         <MetricCard
           label="Advanced-LLT pool · 6 mo"
           value={`${latestPool.value.toFixed(2)}M`}
-          valueSuffix={`(as of ${latestPool.label})`}
-          detail={`+${formatPercent(poolGrowth, 0)} since ${data.advancedPool[0].label}`}
+          valueSuffix={`(${latestPool.label})`}
+          detail={`${formatSignedPercent(poolGrowth, 0)} vs ${data.advancedPool[0].value.toFixed(2)}M (${data.advancedPool[0].label})`}
           detailClassName="text-success"
         />
         <MetricCard
@@ -372,7 +388,6 @@ export function ExecutiveDashboard({ data }: { data: DashboardData }) {
       <MarketSection data={data} />
       <PatientSection data={data} />
       <AssumptionSection data={data} />
-      <ExecutiveSummaryPanel data={data} />
     </>
   );
 }

@@ -1,3 +1,5 @@
+import { FORECAST_LABEL } from "@/utils/dashboard/periods";
+
 type PageIntroProps = {
   title: string;
   description: string;
@@ -15,13 +17,22 @@ export function PageIntro({ title, description }: PageIntroProps) {
   );
 }
 
-export function SectionHeading({ title, question }: { title: string; question: string }) {
+export function SectionHeading({
+  emphasis,
+  prefix,
+  suffix,
+}: {
+  emphasis: string;
+  prefix?: string;
+  suffix?: string;
+}) {
   return (
     <div className="mb-2.5 mt-6">
       <h2 className="m-0 text-[15px] font-bold text-content">
-        {title} <span className="text-[12.5px] font-normal text-muted">: {question}</span>
+        {prefix ? <span className="text-[12.5px] font-normal text-muted">{prefix}</span> : null}
+        {emphasis}
+        {suffix ? <span className="text-[12.5px] font-normal text-muted">{suffix}</span> : null}
       </h2>
     </div>
   );
 }
-import { FORECAST_LABEL } from "@/utils/dashboard/periods";

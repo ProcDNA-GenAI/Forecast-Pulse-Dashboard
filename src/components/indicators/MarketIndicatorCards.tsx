@@ -186,9 +186,6 @@ export function NpsMarketShareCard({ points, productName }: { points: NpsPoint[]
       <div className="relative mt-2.5 h-[210px]">
         <Line data={data} options={options} />
       </div>
-      <p className="mt-1.5 text-[10.5px] text-muted">
-        Market basket: {productName}, Ezetimibe, Repatha, Praluent, Leqvio, Nexletol.
-      </p>
     </DashboardCard>
   );
 }
@@ -492,64 +489,6 @@ export function ComplianceCard({ points, productName }: { points: ComparisonPoin
       </Legend>
       <div className="relative mt-2.5 h-[200px]">
         <Line data={data} options={options} />
-      </div>
-      <p className="mt-1.5 text-[10.5px] text-muted">Illustrative claims data; replace with the ongoing claims feed when available.</p>
-    </DashboardCard>
-  );
-}
-
-export function DemandCard({ points }: { points: ComparisonPoint[] }) {
-  const { bucket } = useDashboard();
-  const colors = useChartColors();
-  const visible = takeForBucket(points, bucket);
-
-  const data: ChartData<"bar", number[], string> = {
-    labels: visible.map((point) => point.label),
-    datasets: [
-      {
-        label: `Forecast NPS (${FORECAST_REFRESH_PERIOD})`,
-        data: visible.map((point) => point.forecast),
-        backgroundColor: rgba(colors.muted, 0.55),
-        borderRadius: 3,
-      },
-      {
-        label: `Actual NPS (through ${visible.at(-1)?.label ?? ACTUALS_PERIOD})`,
-        data: visible.map((point) => point.actual),
-        backgroundColor: rgba(colors.orange, 0.9),
-        borderRadius: 3,
-      },
-    ],
-  };
-
-  const options: ChartOptions<"bar"> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: (context) => `${context.dataset.label}: ${Math.round(Number(context.parsed.y)).toLocaleString()}`,
-        },
-      },
-    },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 9 } } },
-      y: {
-        grid: { color: colors.grid },
-        ticks: { font: { size: 9 }, callback: (value) => `${Number(value) / 1000}k` },
-      },
-    },
-  };
-
-  return (
-    <DashboardCard>
-      <CardHeader title={`New-patient demand (NPS): vs ${FORECAST_LABEL.toLowerCase()}`} />
-      <Legend>
-        <LegendItem color="var(--color-orange)" label={`Actual NPS (through ${visible.at(-1)?.label ?? ACTUALS_PERIOD})`} />
-        <LegendItem color="var(--color-muted)" label={`Forecast NPS (${FORECAST_REFRESH_PERIOD})`} />
-      </Legend>
-      <div className="relative mt-2.5 h-[200px]">
-        <Bar data={data} options={options} />
       </div>
     </DashboardCard>
   );
