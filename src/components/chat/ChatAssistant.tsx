@@ -60,7 +60,7 @@ export function ChatAssistant({ children }: { children: ReactNode }) {
             <Bot aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2.2} />
             <Sparkles aria-hidden="true" className="absolute -right-1 -top-1 h-3 w-3 text-white" fill="currentColor" />
           </span>
-          <span className="text-[13px] font-bold tracking-[0.01em]">Chat Assistant</span>
+          <span className="text-[13px] font-bold tracking-[0.01em]">AI Assistant</span>
         </button>
       )}
     </div>

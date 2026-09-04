@@ -22,7 +22,7 @@ const welcomeMessage: ChatMessage = {
   id: "forecast-pulse-chat-welcome",
   role: "assistant",
   content:
-    "Hi! I’m your Forecast Pulse assistant. Ask me about market performance, claims data, business definitions, or the available market-research documents.",
+    "Hi! I’m your AI assistant. What’s on your mind?",
   status: "complete",
 };
 

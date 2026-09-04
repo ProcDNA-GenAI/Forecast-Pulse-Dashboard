@@ -107,8 +107,7 @@ export function ChatAssistantPanel({
             <Sparkles aria-hidden="true" className="absolute -right-1 -top-1 h-3.5 w-3.5 text-white" fill="currentColor" />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 id="chat-assistant-title" className="text-[15px] font-bold">Chat Assistant</h2>
-            <p className="mt-0.5 truncate text-[10px] text-primary-soft">Forecast Pulse intelligence · {user?.displayName || user?.username}</p>
+            <h2 id="chat-assistant-title" className="text-[15px] font-bold">AI Assistant</h2>
           </div>
           <button type="button" onClick={onNewConversation} disabled={isSending} aria-label="Start a new conversation" title="New conversation" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40">
             <MessageSquarePlus className="h-[18px] w-[18px]" aria-hidden="true" />
@@ -116,7 +115,7 @@ export function ChatAssistantPanel({
           <button type="button" onClick={() => void logout()} aria-label="Sign out" title="Sign out" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-white transition hover:bg-white/15">
             <LogOut className="h-[17px] w-[17px]" aria-hidden="true" />
           </button>
-          <button type="button" onClick={onClose} autoFocus aria-label="Close Chat Assistant" title="Close Chat Assistant" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-white transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80">
+          <button type="button" onClick={onClose} autoFocus aria-label="Close Chat Assistant" title="Close AI Assistant" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-white transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80">
             <X aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
           </button>
         </div>
