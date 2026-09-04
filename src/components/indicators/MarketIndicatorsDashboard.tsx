@@ -129,10 +129,6 @@ export function MarketIndicatorsDashboard({ data }: { data: DashboardData }) {
           </div>
         </section>
       )}
-
-      <footer className="mt-5 border-t border-border pt-3 text-[11.5px] text-muted">
-        Data as of {DATA_AS_OF_PERIOD} · all comparisons vs. {FORECAST_LABEL}
-      </footer>
     </>
   );
 }

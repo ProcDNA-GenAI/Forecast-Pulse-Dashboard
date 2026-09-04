@@ -77,7 +77,7 @@ function MarketSection({ data }: { data: DashboardData }) {
 
   return (
     <>
-      <SectionHeading prefix="Is " emphasis="market" suffix=" evolving as expected?" />
+      <SectionHeading emphasis="Is market evolving as expected?" />
       <DashboardCard>
         <CardHeader
           title={`Treated LLT market: ${ACTUALS_LABEL} vs ${FORECAST_LABEL}`}
@@ -99,11 +99,11 @@ function MarketSection({ data }: { data: DashboardData }) {
         <div className="relative mt-2.5 h-[230px]">
           <MarketTrajectoryChart points={data.market} />
         </div>
-        <p className="mt-2 text-[11.5px] text-muted">
+        {/* <p className="mt-2 text-[11.5px] text-muted">
           The forecast was refreshed in <strong>{FORECAST_REFRESH_PERIOD}</strong>, while the latest outlook
           incorporates actuals through <strong>{ACTUALS_PERIOD}</strong>. The current variance compounds into a
           larger market-size deviation over the 2027-43 outlook.
-        </p>
+        </p> */}
         <div className="overflow-x-auto">
           <table className="mt-2.5 w-full min-w-[520px] border-collapse text-xs tabular-nums">
             <thead>
@@ -156,7 +156,7 @@ function PatientSection({ data }: { data: DashboardData }) {
 
   return (
     <>
-      <SectionHeading prefix="Are " emphasis="patients" suffix=" evolving as expected?" />
+      <SectionHeading emphasis="Are patients evolving as expected?" />
       <DashboardCard>
         <CardHeader
           title={
@@ -375,7 +375,7 @@ export function ExecutiveDashboard({ data }: { data: DashboardData }) {
           label="Advanced-LLT pool · 6 mo"
           value={`${latestPool.value.toFixed(2)}M`}
           valueSuffix={`(${latestPool.label})`}
-          detail={`${formatSignedPercent(poolGrowth, 0)} vs ${data.advancedPool[0].value.toFixed(2)}M (${data.advancedPool[0].label})`}
+          detail={`${formatSignedPercent(poolGrowth, 0)} vs ${data.advancedPool[0].value.toFixed(2)}M ${FORECAST_LABEL}`}
           detailClassName="text-success"
         />
         <MetricCard
