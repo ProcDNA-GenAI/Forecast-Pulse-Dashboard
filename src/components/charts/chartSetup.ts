@@ -43,23 +43,25 @@ export type ChartColors = {
   teal: string;
   violet: string;
   pink: string;
+  grey: string;
   muted: string;
   grid: string;
 };
 
 const fallbackColors: ChartColors = {
-  primary: "#0c447c",
-  secondary: "#185fa5",
-  tertiary: "#2a78d6",
-  accent: "#eda100",
-  success: "#1d9e5a",
+  primary: "#2f5495",
+  secondary: "#2c7358",
+  tertiary: "#f9802c",
+  accent: "#ffc000",
+  success: "#2c7358",
   danger: "#d1523a",
-  orange: "#eb6834",
-  teal: "#1baf7a",
-  violet: "#4a3aa7",
-  pink: "#e87ba4",
-  muted: "#9b9a92",
-  grid: "#e9e8e1",
+  orange: "#f9802c",
+  teal: "#2c7358",
+  violet: "#2f5495",
+  pink: "#ffc000",
+  grey: "#d2d2d2",
+  muted: "#6f7480",
+  grid: "#e7e7e7",
 };
 
 function cssColor(styles: CSSStyleDeclaration, variable: string, fallback: string): string {
@@ -82,6 +84,7 @@ export function useChartColors(): ChartColors {
       teal: cssColor(styles, "--color-teal", fallbackColors.teal),
       violet: cssColor(styles, "--color-violet", fallbackColors.violet),
       pink: cssColor(styles, "--color-pink", fallbackColors.pink),
+      grey: cssColor(styles, "--color-chart-grey", fallbackColors.grey),
       muted: cssColor(styles, "--color-muted", fallbackColors.muted),
       grid: cssColor(styles, "--color-grid", fallbackColors.grid),
     });

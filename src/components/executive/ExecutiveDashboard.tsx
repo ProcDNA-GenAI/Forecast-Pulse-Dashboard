@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState, type ReactNode } from "react";
 import { MarketTrajectoryChart } from "@/components/charts/ExecutiveCharts";
 import { AiSummaryPanel } from "@/components/dashboard/AiSummaryPanel";
@@ -59,13 +60,20 @@ function MetricCard({
   detailClassName?: string;
 }) {
   return (
-    <section className="min-h-[145px] rounded-[14px] border border-border bg-surface px-4 py-[15px] shadow-[0_1px_2px_rgba(38,48,58,0.02)]">
+    <section className="min-h-[118px] rounded-[16px] border border-white/70 bg-white/95 px-4 py-[15px] shadow-[0_5px_18px_rgba(47,84,149,0.055)] backdrop-blur-sm">
       <div className="text-xs text-muted">{label}</div>
-      <div className="my-1.5 flex flex-wrap items-baseline gap-x-1.5 text-[28px] font-bold leading-none text-primary">
+      <div className="my-1.5 flex flex-wrap items-baseline gap-x-1.5 text-[27px] font-bold leading-none text-orange">
         {value}
         {valueSuffix ? <span className="text-[12px] font-semibold text-muted">{valueSuffix}</span> : null}
       </div>
-      {detail ? <div className={`text-[12px] font-semibold leading-[1.45] ${detailClassName || ""}`}>{detail}</div> : null}
+      {detail ? (
+        <div className="mt-2 border-t border-[#ededed] pt-2">
+          <div className={`inline-flex max-w-full items-center gap-1 rounded-full bg-success/10 px-2 py-1 text-[11px] font-semibold leading-none ${detailClassName || "text-success"}`}>
+            <Image src="/UpArrowGreen.svg" alt="" width={11} height={11} className="h-[11px] w-[11px] shrink-0" />
+            <span className="whitespace-nowrap">{detail}</span>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -85,13 +93,13 @@ function MarketSection({ data }: { data: DashboardData }) {
         />
         <Legend>
           <LegendItem
-            color="var(--color-muted)"
+            color="var(--color-chart-grey)"
             kind="line"
             dashed
             label={`${FORECAST_LABEL} · CAGR ${formatPercent(forecastCagr, 1)}`}
           />
           <LegendItem
-            color="var(--color-tertiary)"
+            color="var(--color-primary)"
             kind="line"
             label={`${ACTUALS_LABEL} · CAGR ${formatPercent(actualCagr, 1)}`}
           />
@@ -356,34 +364,36 @@ export function ExecutiveDashboard({ data }: { data: DashboardData }) {
         <ExecutiveSummaryPanel data={data} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label="Treated LLT market"
-          value={formatMillions(market2026.actual)}
-          valueSuffix={`(${ACTUALS_PERIOD})`}
-          detail={`${formatSignedPercent((market2026.actual - market2026.forecast) / market2026.forecast, 1)} vs ${formatMillions(market2026.forecast)} ${FORECAST_LABEL}`}
-          detailClassName="text-success"
-        />
-        <MetricCard
-          label="Market CAGR"
-          value={formatPercent(actualCagr, 1)}
-          valueSuffix="(2027-43)"
-          detail={`+${((actualCagr - forecastCagr) * 100).toFixed(1)} pt vs ${formatPercent(forecastCagr, 1)} ${FORECAST_LABEL}`}
-          detailClassName="text-success"
-        />
-        <MetricCard
-          label="Advanced-LLT pool · 6 mo"
-          value={`${latestPool.value.toFixed(2)}M`}
-          valueSuffix={`(${latestPool.label})`}
-          detail={`${formatSignedPercent(poolGrowth, 0)} vs ${data.advancedPool[0].value.toFixed(2)}M ${FORECAST_LABEL}`}
-          detailClassName="text-success"
-        />
-        <MetricCard
-          label="Segments showing meaningful movement"
-          value={`${topMovers.length}/${data.segments.length}`}
-          valueSuffix={`(${ACTUALS_PERIOD})`}
-        />
-      </div>
+      <section className="dashboard-hero rounded-[18px] border border-[#f2e8e1] p-4 shadow-[0_4px_14px_rgba(47,84,149,0.025)]">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            label="Treated LLT market"
+            value={formatMillions(market2026.actual)}
+            valueSuffix={`(${ACTUALS_PERIOD})`}
+            detail={`${formatSignedPercent((market2026.actual - market2026.forecast) / market2026.forecast, 1)} vs ${formatMillions(market2026.forecast)} ${FORECAST_LABEL}`}
+            detailClassName="text-success"
+          />
+          <MetricCard
+            label="Market CAGR"
+            value={formatPercent(actualCagr, 1)}
+            valueSuffix="(2027-43)"
+            detail={`+${((actualCagr - forecastCagr) * 100).toFixed(1)} pt vs ${formatPercent(forecastCagr, 1)} ${FORECAST_LABEL}`}
+            detailClassName="text-success"
+          />
+          <MetricCard
+            label="Advanced-LLT pool · 6 mo"
+            value={`${latestPool.value.toFixed(2)}M`}
+            valueSuffix={`(${latestPool.label})`}
+            detail={`${formatSignedPercent(poolGrowth, 0)} vs ${data.advancedPool[0].value.toFixed(2)}M ${FORECAST_LABEL}`}
+            detailClassName="text-success"
+          />
+          <MetricCard
+            label="Segments showing meaningful movement"
+            value={`${topMovers.length}/${data.segments.length}`}
+            valueSuffix={`(${ACTUALS_PERIOD})`}
+          />
+        </div>
+      </section>
 
       <MarketSection data={data} />
       <PatientSection data={data} />

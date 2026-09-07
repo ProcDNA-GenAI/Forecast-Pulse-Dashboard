@@ -15,8 +15,8 @@ export function MarketTrajectoryChart({ points }: { points: MarketPoint[] }) {
       {
         label: ACTUALS_LABEL,
         data: points.map((point) => point.actual / 1_000_000),
-        borderColor: colors.tertiary,
-        backgroundColor: rgba(colors.tertiary, 0.1),
+        borderColor: colors.primary,
+        backgroundColor: rgba(colors.primary, 0.1),
         fill: { target: 1 },
         borderWidth: 2.4,
         pointRadius: 0,
@@ -25,7 +25,7 @@ export function MarketTrajectoryChart({ points }: { points: MarketPoint[] }) {
       {
         label: FORECAST_LABEL,
         data: points.map((point) => point.forecast / 1_000_000),
-        borderColor: colors.muted,
+        borderColor: colors.grey,
         borderDash: [5, 4],
         borderWidth: 1.8,
         pointRadius: 0,
@@ -54,6 +54,7 @@ export function MarketTrajectoryChart({ points }: { points: MarketPoint[] }) {
       },
       y: {
         grid: { color: colors.grid },
+        title: { display: true, text: "Treated LLT market (M)", color: colors.muted, font: { size: 9, weight: 600 } },
         ticks: { font: { size: 9 }, callback: (value) => `${value}M` },
       },
     },

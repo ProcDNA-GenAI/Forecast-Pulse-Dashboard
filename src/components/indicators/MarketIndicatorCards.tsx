@@ -23,10 +23,10 @@ function colorFromToken(colors: ChartColors, token: keyof ChartColors): string {
 }
 
 function cssVariableForToken(token: string): string {
-  return `var(--color-${token})`;
+  return token === "grey" ? "var(--color-chart-grey)" : `var(--color-${token})`;
 }
 
-const productColorTokens = ["accent", "pink", "teal", "violet", "orange"] as const;
+const productColorTokens = ["orange", "primary", "success", "accent", "grey"] as const;
 
 export function ProductMixCard({ points }: { points: ProductMixPoint[] }) {
   const { bucket } = useDashboard();
@@ -76,6 +76,12 @@ export function ProductMixCard({ points }: { points: ProductMixPoint[] }) {
         stacked: true,
         max: mode === "pct" ? 100 : undefined,
         grid: { color: colors.grid },
+        title: {
+          display: true,
+          text: mode === "pct" ? "Patient share (%)" : "Patients (M)",
+          color: colors.muted,
+          font: { size: 9, weight: 600 },
+        },
         ticks: {
           font: { size: 9 },
           callback: (value) => (mode === "pct" ? `${value}%` : `${Number(value).toFixed(2)}M`),
@@ -133,7 +139,7 @@ export function NpsMarketShareCard({ points, productName }: { points: NpsPoint[]
       {
         label: FORECAST_LABEL,
         data: visible.map((point) => (mode === "share" ? point.forecast * 100 : point.forecastCount)),
-        borderColor: colors.muted,
+        borderColor: colors.grey,
         borderDash: [5, 4],
         borderWidth: 1.8,
         pointRadius: 0,
@@ -181,7 +187,7 @@ export function NpsMarketShareCard({ points, productName }: { points: NpsPoint[]
       />
       <Legend>
         <LegendItem color="var(--color-orange)" kind="line" label={actualsLabel} />
-        <LegendItem color="var(--color-muted)" kind="line" dashed label={FORECAST_LABEL} />
+        <LegendItem color="var(--color-chart-grey)" kind="line" dashed label={FORECAST_LABEL} />
       </Legend>
       <div className="relative mt-2.5 h-[210px]">
         <Line data={data} options={options} />
@@ -196,9 +202,10 @@ type TrendCardProps = {
   colorToken: "tertiary" | "teal";
   valueLabel: (value: number) => string;
   tickLabel: (value: number) => string;
+  yAxisLabel?: string;
 };
 
-export function TrendCard({ title, points, colorToken, valueLabel, tickLabel }: TrendCardProps) {
+export function TrendCard({ title, points, colorToken, valueLabel, tickLabel, yAxisLabel }: TrendCardProps) {
   const { bucket } = useDashboard();
   const colors = useChartColors();
   const visible = takeForBucket(points, bucket);
@@ -229,7 +236,11 @@ export function TrendCard({ title, points, colorToken, valueLabel, tickLabel }: 
     },
     scales: {
       x: { grid: { display: false }, ticks: { font: { size: 9 } } },
-      y: { grid: { color: colors.grid }, ticks: { font: { size: 8 }, callback: (value) => tickLabel(Number(value)) } },
+      y: {
+        grid: { color: colors.grid },
+        title: yAxisLabel ? { display: true, text: yAxisLabel, color: colors.muted, font: { size: 9, weight: 600 } } : undefined,
+        ticks: { font: { size: 8 }, callback: (value) => tickLabel(Number(value)) },
+      },
     },
   };
 
@@ -265,8 +276,8 @@ export function PatientInflowCard({ points, productName }: { points: InflowPoint
       {
         label: "Switch from advanced",
         data: visible.map((point) => point.switchFromAdvanced * 100),
-        borderColor: colors.secondary,
-        backgroundColor: rgba(colors.secondary, 0.85),
+        borderColor: colors.primary,
+        backgroundColor: rgba(colors.primary, 0.85),
         fill: true,
         stack: "source",
         pointRadius: 0,
@@ -275,8 +286,8 @@ export function PatientInflowCard({ points, productName }: { points: InflowPoint
       {
         label: "Other",
         data: visible.map((point) => point.other * 100),
-        borderColor: colors.muted,
-        backgroundColor: rgba(colors.muted, 0.7),
+        borderColor: colors.grey,
+        backgroundColor: rgba(colors.grey, 0.82),
         fill: true,
         stack: "source",
         pointRadius: 0,
@@ -298,6 +309,7 @@ export function PatientInflowCard({ points, productName }: { points: InflowPoint
         stacked: true,
         max: 100,
         grid: { color: colors.grid },
+        title: { display: true, text: "Patient share (%)", color: colors.muted, font: { size: 9, weight: 600 } },
         ticks: { font: { size: 9 }, callback: (value) => `${value}%` },
       },
     },
@@ -317,7 +329,7 @@ export function PatientInflowCard({ points, productName }: { points: InflowPoint
     datasets: [
       {
         data: overallShares.map((value) => value * 100),
-        backgroundColor: [rgba(colors.teal, 0.9), rgba(colors.secondary, 0.9), rgba(colors.muted, 0.75)],
+        backgroundColor: [rgba(colors.teal, 0.9), rgba(colors.primary, 0.9), rgba(colors.grey, 0.9)],
         borderColor: "#ffffff",
         borderWidth: 2,
       },
@@ -339,8 +351,8 @@ export function PatientInflowCard({ points, productName }: { points: InflowPoint
       <CardHeader title={`${productName} patient inflow source`} action={<DataTag>{periodLabel}</DataTag>} />
       <Legend>
         <LegendItem color="var(--color-teal)" label="Newly intensified" />
-        <LegendItem color="var(--color-secondary)" label="Switch from advanced" />
-        <LegendItem color="var(--color-muted)" label="Other" />
+        <LegendItem color="var(--color-primary)" label="Switch from advanced" />
+        <LegendItem color="var(--color-chart-grey)" label="Other" />
       </Legend>
       <div className="mt-2.5 grid gap-5 lg:grid-cols-[minmax(0,1.75fr)_minmax(220px,0.7fr)] lg:items-center">
         <div className="relative h-[220px]">
@@ -390,7 +402,7 @@ export function PersistencyCard({ points, productName }: { points: ComparisonPoi
       {
         label: `Blended forecast curve (${FORECAST_REFRESH_PERIOD})`,
         data: visible.map((point) => point.forecast * 100),
-        borderColor: colors.muted,
+        borderColor: colors.grey,
         borderDash: [5, 4],
         borderWidth: 1.8,
         pointRadius: 0,
@@ -412,6 +424,7 @@ export function PersistencyCard({ points, productName }: { points: ComparisonPoi
         min: 50,
         max: 100,
         grid: { color: colors.grid },
+        title: { display: true, text: "Persistency (%)", color: colors.muted, font: { size: 9, weight: 600 } },
         ticks: { font: { size: 9 }, callback: (value) => `${value}%` },
       },
     },
@@ -422,7 +435,7 @@ export function PersistencyCard({ points, productName }: { points: ComparisonPoi
       <CardHeader title="Persistency" />
       <Legend>
         <LegendItem color="var(--color-orange)" kind="line" label={`${productName} persistency`} />
-        <LegendItem color="var(--color-muted)" kind="line" dashed label={`Blended forecast curve (${FORECAST_REFRESH_PERIOD})`} />
+        <LegendItem color="var(--color-chart-grey)" kind="line" dashed label={`Blended forecast curve (${FORECAST_REFRESH_PERIOD})`} />
       </Legend>
       <div className="relative mt-2.5 h-[200px]">
         <Line data={data} options={options} />
@@ -453,7 +466,7 @@ export function ComplianceCard({ points, productName }: { points: ComparisonPoin
       {
         label: FORECAST_LABEL,
         data: visible.map((point) => point.forecast * 100),
-        borderColor: colors.muted,
+        borderColor: colors.grey,
         borderDash: [5, 4],
         borderWidth: 1.8,
         pointRadius: 0,
@@ -475,6 +488,7 @@ export function ComplianceCard({ points, productName }: { points: ComparisonPoin
         min: 70,
         max: 90,
         grid: { color: colors.grid },
+        title: { display: true, text: "Compliance (%)", color: colors.muted, font: { size: 9, weight: 600 } },
         ticks: { font: { size: 9 }, callback: (value) => `${value}%` },
       },
     },
@@ -485,7 +499,7 @@ export function ComplianceCard({ points, productName }: { points: ComparisonPoin
       <CardHeader title="Compliance" />
       <Legend>
         <LegendItem color="var(--color-teal)" kind="line" label={actualsLabel} />
-        <LegendItem color="var(--color-muted)" kind="line" dashed label={FORECAST_LABEL} />
+        <LegendItem color="var(--color-chart-grey)" kind="line" dashed label={FORECAST_LABEL} />
       </Legend>
       <div className="relative mt-2.5 h-[200px]">
         <Line data={data} options={options} />
@@ -505,7 +519,7 @@ export function PrescriberCard({ points }: { points: PrescriberPoint[] }) {
         type: "bar",
         label: "Writers",
         data: points.map((item) => item.writers),
-        backgroundColor: rgba(colors.secondary, 0.85),
+        backgroundColor: rgba(colors.primary, 0.9),
         yAxisID: "y",
         borderRadius: 4,
         order: 2,
@@ -528,7 +542,7 @@ export function PrescriberCard({ points }: { points: PrescriberPoint[] }) {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: true, labels: { font: { size: 11 }, boxWidth: 12 } },
+      legend: { display: true, align: "end", labels: { font: { size: 11 }, boxWidth: 12 } },
     },
     scales: {
       x: { grid: { display: false }, ticks: { font: { size: 10 } } },
@@ -553,7 +567,7 @@ export function PrescriberCard({ points }: { points: PrescriberPoint[] }) {
       {
         label: "Writers",
         data: points.map((item) => item.writers),
-        backgroundColor: colors.secondary,
+        backgroundColor: colors.primary,
         borderRadius: 4,
         barPercentage: 0.6,
       },
@@ -576,7 +590,11 @@ export function PrescriberCard({ points }: { points: PrescriberPoint[] }) {
       },
     },
     scales: {
-      x: { grid: { color: colors.grid }, ticks: { font: { size: 9 } } },
+      x: {
+        grid: { color: colors.grid },
+        title: { display: true, text: "Writers", color: colors.muted, font: { size: 9, weight: 600 } },
+        ticks: { font: { size: 9 } },
+      },
       y: { grid: { display: false }, ticks: { font: { size: 11 } } },
     },
   };

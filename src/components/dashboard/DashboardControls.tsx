@@ -27,7 +27,7 @@ export function SegmentedControl<T extends string>({
           onClick={() => onChange(option.value)}
           aria-pressed={value === option.value}
           className={`cursor-pointer rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-            value === option.value ? "bg-secondary text-white" : "text-[#6b6a64] hover:text-content"
+            value === option.value ? "bg-primary text-white" : "text-[#6b6a64] hover:text-content"
           }`}
         >
           {option.label}
@@ -42,7 +42,7 @@ export function MiniButton({ children, onClick }: { children: ReactNode; onClick
     <button
       type="button"
       onClick={onClick}
-      className="cursor-pointer whitespace-nowrap rounded-full border border-border bg-page px-[11px] py-1 text-[11px] text-[#5f5e5a] transition-colors hover:border-secondary hover:text-secondary"
+      className="cursor-pointer whitespace-nowrap rounded-full border border-border bg-[#fafafa] px-[11px] py-1 text-[11px] text-[#5f5e5a] transition-colors hover:border-primary hover:text-primary"
     >
       {children}
     </button>
@@ -85,5 +85,5 @@ export function LegendItem({
 }
 
 export function Legend({ children }: { children: ReactNode }) {
-  return <div className="mb-0.5 mt-2 flex flex-wrap gap-x-3.5 gap-y-1.5 text-xs text-muted">{children}</div>;
+  return <div className="mb-0.5 mt-2 flex flex-wrap justify-end gap-x-3.5 gap-y-1.5 text-xs text-muted">{children}</div>;
 }

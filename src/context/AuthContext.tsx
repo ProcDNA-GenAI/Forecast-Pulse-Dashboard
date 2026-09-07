@@ -13,6 +13,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { getAuthConfig, getUserInfo, loginUrl, logout as logoutApi } from "@/utils/auth/api";
 import type { AuthMode, AuthUser } from "@/utils/auth/types";
+import { isUiDevMode } from "@/utils/ui-dev-mode";
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -24,6 +25,18 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+const uiDevUser: AuthUser = {
+  id: 0,
+  username: "ui-developer",
+  displayName: "UI Developer",
+  email: "",
+  isAdmin: false,
+  department: null,
+  jobTitle: null,
+  profileUrl: null,
+  expiresAt: "",
+};
 
 function currentRelativePath() {
   if (typeof window === "undefined") {
@@ -46,17 +59,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const initialized = useRef(false);
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(isUiDevMode ? uiDevUser : null);
   const [authMode, setAuthMode] = useState<AuthMode>("sso");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!isUiDevMode);
 
   const beginLogin = useCallback((nextPath = "/") => {
+    if (isUiDevMode) return;
+
     if (typeof window !== "undefined") {
       window.location.assign(loginUrl(nextPath));
     }
   }, []);
 
   useEffect(() => {
+    if (isUiDevMode) {
+      return;
+    }
+
     if (initialized.current) {
       return;
     }
@@ -102,6 +121,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [pathname, router]);
 
   const logout = useCallback(async () => {
+    if (isUiDevMode) return;
+
     try {
       const response = await logoutApi();
       setUser(null);
