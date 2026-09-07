@@ -3,7 +3,7 @@
 import { BarChart3, ChevronDown, Download, Presentation } from "lucide-react";
 import * as echarts from "echarts";
 import { useEffect, useId, useMemo, useRef, useState, type RefObject } from "react";
-import { downloadChartPng, downloadChartPptx } from "@/utils/chat/chart-downloads";
+import { downloadChartPng, downloadChartPptx, getChartPngDataUrl } from "@/utils/chat/chart-downloads";
 import type { ChartGroup, ChartPayload } from "@/utils/chat/types";
 
 function fallbackOption(chart: ChartPayload): echarts.EChartsOption {
@@ -131,6 +131,7 @@ export function ChatChartGroup({
   const chartElementRef = useRef<HTMLDivElement>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [isDownloadingPptx, setIsDownloadingPptx] = useState(false);
+  const [downloadSucceeded, setDownloadSucceeded] = useState(false);
   const options = useMemo(
     () => group.variants.map((item, index) => item.optionLabel || `${item.kind} ${index + 1}`),
     [group.variants],
@@ -152,9 +153,19 @@ export function ChatChartGroup({
   const handlePptxDownload = async () => {
     if (!messageId) return;
     setDownloadError(null);
+    setDownloadSucceeded(false);
     setIsDownloadingPptx(true);
     try {
-      await downloadChartPptx({ messageId, chartGroupIndex: groupIndex, chartIndex: selectedIndex, chart });
+      const chartImageDataUrl = getChartPngDataUrl(chartElementRef.current, 3);
+      await downloadChartPptx({
+        messageId,
+        chartGroupIndex: groupIndex,
+        chartIndex: selectedIndex,
+        chart,
+        chartImageDataUrl,
+      });
+      setDownloadSucceeded(true);
+      window.setTimeout(() => setDownloadSucceeded(false), 2200);
     } catch (error) {
       setDownloadError(error instanceof Error ? error.message : "Unable to download PowerPoint.");
     } finally {
@@ -176,7 +187,11 @@ export function ChatChartGroup({
             <select
               id={selectId}
               value={selectedIndex}
-              onChange={(event) => setSelectedIndex(Number(event.target.value))}
+              onChange={(event) => {
+                setSelectedIndex(Number(event.target.value));
+                setDownloadError(null);
+                setDownloadSucceeded(false);
+              }}
               className="cursor-pointer appearance-none rounded-lg border border-primary/15 bg-page py-1.5 pl-2.5 pr-7 text-[10px] font-semibold text-primary outline-none focus:border-secondary"
             >
               {options.map((label, index) => <option key={`${label}-${index}`} value={index}>{label}</option>)}
@@ -194,24 +209,31 @@ export function ChatChartGroup({
           <Download className="h-3 w-3" aria-hidden="true" />
           PNG
         </button>
-        {messageId ? (
+      </div>
+      <div className="px-1 py-2"><ChartCanvas chart={chart} containerRef={chartElementRef} /></div>
+      {messageId ? (
+        <div className="flex justify-end border-t border-primary/10 px-3 py-2.5">
           <button
             type="button"
             disabled={isDownloadingPptx}
             onClick={() => void handlePptxDownload()}
-            className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-lg border border-primary/15 bg-page px-2 text-[10px] font-semibold text-primary transition hover:border-secondary/40 hover:bg-secondary/5 disabled:cursor-wait disabled:opacity-60"
+            className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-3 text-[10px] font-bold text-white shadow-sm transition hover:bg-primary-deep disabled:cursor-wait disabled:opacity-60"
             aria-label={`Download ${chartTitle} as PowerPoint`}
-            title="Download PowerPoint"
+            title="Download PowerPoint for this chart"
           >
-            <Presentation className="h-3 w-3" aria-hidden="true" />
-            {isDownloadingPptx ? "PPTX..." : "PPTX"}
+            <Presentation className="h-3.5 w-3.5" aria-hidden="true" />
+            {isDownloadingPptx ? "Generating PPT..." : "Download PPT"}
           </button>
-        ) : null}
-      </div>
-      <div className="px-1 py-2"><ChartCanvas chart={chart} containerRef={chartElementRef} /></div>
+        </div>
+      ) : null}
       {downloadError ? (
         <p className="border-t border-danger/15 bg-danger/5 px-3 py-2 text-[10px] font-medium text-danger" role="alert">
           {downloadError}
+        </p>
+      ) : null}
+      {downloadSucceeded ? (
+        <p className="border-t border-success/15 bg-success/5 px-3 py-2 text-[10px] font-medium text-success" role="status">
+          PowerPoint downloaded successfully.
         </p>
       ) : null}
       {chart.warnings?.length ? (
