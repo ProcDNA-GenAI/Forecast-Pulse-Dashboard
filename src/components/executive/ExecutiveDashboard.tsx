@@ -306,38 +306,41 @@ function AssumptionSection({ data }: { data: DashboardData }) {
   );
 }
 
-function ExecutiveSummaryPanel({ data }: { data: DashboardData }) {
-  const actualCagr = calculateCagr(data.market, "actual", 2027);
-  const forecastCagr = calculateCagr(data.market, "forecast", 2027);
-  const poolGrowth = latestPoint(data.advancedPool).value / data.advancedPool[0].value - 1;
-  const counts = assumptionCounts(data.assumptions);
-  const escalation = data.assumptions.find((item) => item.name.toLowerCase().includes("escalation"));
-  const access = data.assumptions.find((item) => item.name === "Access");
-  const topMovers = largestSegmentMovers(data.segments);
-
-  if (!escalation || !access) {
-    throw new Error("The assumption summary requires escalation and access rows.");
-  }
-
+function ExecutiveSummaryPanel() {
   return (
     <AiSummaryPanel
       summary={
-        <ul className="m-0 list-disc space-y-2 pl-5">
+        <ul className="m-0 list-disc space-y-3 pl-5">
           <li>
-            The 2027-43 market CAGR is {formatPercent(actualCagr, 1)} versus {formatPercent(forecastCagr, 1)} in the{" "}
-            {FORECAST_LABEL}; the advanced-LLT pool increased ~{formatPercent(poolGrowth, 0)} over six months.
+            <p className="m-0 font-semibold text-[#2C7358]">Opportunity - LDL-C market is tracking ahead of expectations</p>
+            <p className="m-0 mt-1 text-content">
+              Market growth is running at 2.1% CAGR vs. 1.6% forecast, while the advanced-LLT pool has increased ~8% over
+              six months. <strong>The addressable opportunity may be expanding faster than anticipated.</strong>
+            </p>
           </li>
           <li>
-            {topMovers.length} of {data.segments.length} patient segments show meaningful movement: {topMovers.map((segment) => `${segment.name} (${formatPercentPoints(segment.change)})`).join("; ")}.
+            <p className="m-0 font-semibold text-[#2C7358]">Opportunity - Patients are escalating faster than expected</p>
+            <p className="m-0 mt-1 text-content">
+              Time to advanced therapy is currently 7.3 months vs. 8.4 months forecast.{" "}
+              <strong>Earlier escalation could increase the near-term treatment opportunity if access can support the increased demand.</strong>
+            </p>
           </li>
           <li>
-            Escalation to advanced therapy is faster than the {FORECAST_LABEL} ({escalation.current.toFixed(1)} vs{" "}
-            {escalation.forecast.toFixed(1)} months), while access is {formatPercent(access.current, 0)} versus{" "}
-            {formatPercent(access.forecast, 0)} in the {FORECAST_LABEL}.
+            <p className="m-0 font-semibold text-[#9a6a12]">Watch - Patient mix is beginning to shift across key target segments</p>
+            <p className="m-0 mt-1 text-content">
+              Three of 14 segments have moved meaningfully, led by <em>PP without T2D - Other Risk Factors</em>.{" "}
+              <strong>
+                The composition of patients reaching treatment may be changing, potentially affecting the size and mix of Obi&apos;s
+                addressable population.
+              </strong>
+            </p>
           </li>
           <li>
-            Of {data.assumptions.length} monitored assumptions, {counts["Take Action"]} requires action and {counts.Watch}{" "}
-            remain on watch.
+            <p className="m-0 font-semibold text-[#b23b2c]">Action - Access is not keeping pace with the opportunity</p>
+            <p className="m-0 mt-1 text-content">
+              Access is currently 39% vs. 41% forecast while several other market indicators are tracking ahead.{" "}
+              <strong>This assumption warrants review as part of the next launch outlook refresh.</strong>
+            </p>
           </li>
         </ul>
       }
@@ -361,7 +364,7 @@ export function ExecutiveDashboard({ data }: { data: DashboardData }) {
       />
 
       <div className="mb-4">
-        <ExecutiveSummaryPanel data={data} />
+        <ExecutiveSummaryPanel />
       </div>
 
       <section className="dashboard-hero rounded-[18px] border border-[#f2e8e1] p-4 shadow-[0_4px_14px_rgba(47,84,149,0.025)]">
