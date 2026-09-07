@@ -53,6 +53,16 @@ function contentDispositionFilename(value: string | null) {
 }
 
 export function downloadChartPng(chartElement: HTMLDivElement | null, title: string) {
+  const dataUrl = getChartPngDataUrl(chartElement, 2);
+  const link = document.createElement("a");
+  link.href = dataUrl;
+  link.download = safeFilename(title, "png");
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+export function getChartPngDataUrl(chartElement: HTMLDivElement | null, pixelRatio = 3) {
   if (!chartElement) {
     throw new Error("The chart is not ready to download yet.");
   }
@@ -62,17 +72,11 @@ export function downloadChartPng(chartElement: HTMLDivElement | null, title: str
     throw new Error("The chart is not ready to download yet.");
   }
 
-  const dataUrl = instance.getDataURL({
+  return instance.getDataURL({
     type: "png",
-    pixelRatio: 2,
+    pixelRatio,
     backgroundColor: "#ffffff",
   });
-  const link = document.createElement("a");
-  link.href = dataUrl;
-  link.download = safeFilename(title, "png");
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
 }
 
 export async function downloadChartPptx({
@@ -80,11 +84,13 @@ export async function downloadChartPptx({
   chartGroupIndex,
   chartIndex,
   chart,
+  chartImageDataUrl,
 }: {
   messageId: number;
   chartGroupIndex: number;
   chartIndex: number;
   chart: ChartPayload;
+  chartImageDataUrl?: string;
 }) {
   const response = await fetchWithSession(apiUrl(`/dashboard/messages/${messageId}/export-pptx`), {
     method: "POST",
@@ -96,6 +102,7 @@ export async function downloadChartPptx({
       chart_group_index: chartGroupIndex,
       chart_index: chartIndex,
       chart,
+      chart_image_data_url: chartImageDataUrl,
     }),
   });
 
