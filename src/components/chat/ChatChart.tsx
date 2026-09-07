@@ -3,7 +3,7 @@
 import { BarChart3, ChevronDown, Download, Presentation } from "lucide-react";
 import * as echarts from "echarts";
 import { useEffect, useId, useMemo, useRef, useState, type RefObject } from "react";
-import { downloadChartPng, downloadChartPptx } from "@/utils/chat/chart-downloads";
+import { downloadChartPng, downloadChartPptx, getChartPngDataUrl } from "@/utils/chat/chart-downloads";
 import type { ChartGroup, ChartPayload } from "@/utils/chat/types";
 
 type ChartLabelParams = {
@@ -293,7 +293,14 @@ export function ChatChartGroup({
     setDownloadError(null);
     setIsDownloadingPptx(true);
     try {
-      await downloadChartPptx({ messageId, chartGroupIndex: groupIndex, chartIndex: selectedIndex, chart });
+      const chartImageDataUrl = getChartPngDataUrl(chartElementRef.current, 3);
+      await downloadChartPptx({
+        messageId,
+        chartGroupIndex: groupIndex,
+        chartIndex: selectedIndex,
+        chart,
+        chartImageDataUrl,
+      });
     } catch (error) {
       setDownloadError(error instanceof Error ? error.message : "Unable to download PowerPoint.");
     } finally {
