@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useAuth } from "@/context/AuthContext";
 import { getDatasources, getDiseaseAreas, getKnowledgeBaseCatalog } from "@/utils/chat/api";
 import type { ChatBootstrapData } from "@/utils/chat/types";
+import { isUiDevMode } from "@/utils/ui-dev-mode";
 
 type BootstrapStatus = "error" | "idle" | "loading" | "ready";
 type ChatBootstrapContextValue = {
@@ -29,6 +30,13 @@ export function ChatBootstrapProvider({ children }: { children: ReactNode }) {
   const reload = useCallback(() => setReloadKey((current) => current + 1), []);
 
   useEffect(() => {
+    if (isUiDevMode) {
+      setStatus("idle");
+      setData(null);
+      setError(null);
+      return;
+    }
+
     if (!isAuthenticated) {
       setStatus("idle");
       setData(null);

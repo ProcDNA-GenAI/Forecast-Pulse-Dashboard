@@ -4,6 +4,7 @@ import { useEffect, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth, currentRelativePath } from "@/context/AuthContext";
 import { useChatBootstrap } from "@/context/ChatBootstrapContext";
+import { isUiDevMode } from "@/utils/ui-dev-mode";
 import { FullPageLoader } from "./FullPageLoader";
 
 export function AuthGate({ children }: { children: ReactNode }) {
@@ -13,10 +14,16 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const isLoginPage = pathname === "/login";
 
   useEffect(() => {
+    if (isUiDevMode) return;
+
     if (!isLoginPage && !isLoading && !isAuthenticated) {
       beginLogin(currentRelativePath());
     }
   }, [beginLogin, isAuthenticated, isLoading, isLoginPage]);
+
+  if (isUiDevMode) {
+    return children;
+  }
 
   if (isLoginPage) {
     return children;

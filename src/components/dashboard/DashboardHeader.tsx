@@ -1,96 +1,97 @@
 "use client";
 
-import Link from "next/link";
-import { LogOut } from "lucide-react";
-import { usePathname } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { ChevronDown } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { DATA_AS_OF_PERIOD, FORECAST_LABEL } from "@/utils/dashboard/periods";
 import { useDashboard, type TimeBucket } from "./DashboardProvider";
-
-const tabs = [
-  { href: "/", label: "Executive Summary" },
-  { href: "/key-market-indicators", label: "Market Intelligence" },
-];
 
 const buckets: TimeBucket[] = ["QTD", "YTD", "LTD"];
 
 export function DashboardHeader() {
-  const pathname = usePathname();
-  const { logout, user } = useAuth();
   const { bucket, setBucket } = useDashboard();
-  const showTimeBucket = pathname !== "/";
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setIsOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
 
   return (
-    <header className="sticky top-0 z-50 isolate text-white shadow-[0_5px_18px_rgba(8,50,96,0.14)]">
-      <div className="bg-gradient-to-r from-primary via-primary to-secondary px-4 pt-3 sm:px-6">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="text-[17px] font-semibold">
-            NewAmsterdam Pharma · Pre-Launch Market Intelligence
-            <span className="ml-2 text-xs font-normal text-primary-soft">
-              Obicetrapib (Obi) | LDL-C
-            </span>
-          </span>
-          <div className="ml-auto flex items-center gap-3 text-xs text-primary-soft">
-            <span className="hidden sm:inline">Data as of {DATA_AS_OF_PERIOD} · vs. {FORECAST_LABEL}</span>
-            <span className="h-4 w-px bg-white/15" aria-hidden="true" />
-            <span className="max-w-28 truncate font-semibold text-white">{user?.displayName || user?.username}</span>
+    <header className="sticky top-0 z-40 border-b border-border/80 bg-page/95 backdrop-blur-md">
+      <div className="mx-auto flex min-h-[66px] max-w-[1540px] flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 sm:px-6 lg:px-7">
+        <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <h1 className="m-0 text-lg font-bold leading-tight text-content sm:text-[23px]">
+            Pre-Launch Market Intelligence
+          </h1>
+          <span className="hidden text-xs text-[#5f626a] md:inline sm:text-sm">(Obicetrapib (Obi) | LDL-C)</span>
+        </div>
+        <span className="hidden text-[10px] text-muted xl:inline">
+          Data as of {DATA_AS_OF_PERIOD} · vs. {FORECAST_LABEL}
+        </span>
+        <div className="flex shrink-0 items-center gap-2.5 text-[11px] font-semibold text-content">
+          <span className="hidden lg:inline">Time Bucket</span>
+          <div className="relative" ref={menuRef}>
             <button
               type="button"
-              onClick={() => void logout()}
-              aria-label="Sign out"
-              title="Sign out"
-              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-primary-soft transition hover:bg-white/10 hover:text-white"
+              onClick={() => setIsOpen((current) => !current)}
+              aria-haspopup="listbox"
+              aria-expanded={isOpen}
+              aria-label="Time bucket"
+              className={`flex h-9 min-w-[92px] cursor-pointer items-center justify-between gap-3 rounded-lg border bg-white py-1 pl-3 pr-2.5 text-left text-xs font-semibold text-content shadow-[0_8px_22px_rgba(47,84,149,0.07)] outline-none transition sm:min-w-[118px] ${
+                isOpen ? "border-primary ring-2 ring-primary/12" : "border-border hover:border-primary/40"
+              }`}
             >
-              <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>{bucket}</span>
+              <ChevronDown
+                className={`h-3.5 w-3.5 text-primary transition-transform ${isOpen ? "rotate-180" : ""}`}
+                aria-hidden="true"
+              />
             </button>
+            {isOpen ? (
+              <div
+                role="listbox"
+                aria-label="Time bucket"
+                className="absolute right-0 top-[calc(100%+8px)] z-50 w-[132px] overflow-hidden rounded-xl border border-border bg-white p-1.5 shadow-[0_18px_42px_rgba(24,33,59,0.16)]"
+              >
+                {buckets.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    role="option"
+                    aria-selected={bucket === item}
+                    onClick={() => {
+                      setBucket(item);
+                      setIsOpen(false);
+                    }}
+                    className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-semibold transition ${
+                      bucket === item
+                        ? "bg-primary text-white shadow-sm"
+                        : "text-content hover:bg-primary-soft hover:text-primary"
+                    }`}
+                  >
+                    {item}
+                    {bucket === item ? <span className="h-1.5 w-1.5 rounded-full bg-white" aria-hidden="true" /> : null}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
-
-        <nav aria-label="Dashboard sections" className="mt-3 flex flex-wrap gap-0.5">
-          {tabs.map((tab) => {
-            const isActive = pathname === tab.href;
-
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                aria-current={isActive ? "page" : undefined}
-                className={`rounded-t-lg px-4 py-2.5 text-[13px] font-medium transition-colors sm:px-[18px] ${
-                  isActive
-                    ? "bg-page font-semibold text-primary"
-                    : "text-primary-soft hover:text-white"
-                }`}
-              >
-                {tab.label}
-              </Link>
-            );
-          })}
-        </nav>
       </div>
-
-      {showTimeBucket ? (
-        <div className="flex flex-wrap items-center gap-3 border-t border-white/10 bg-primary-deep px-4 py-2.5 text-xs text-primary-soft sm:px-6">
-          <span>Time bucket</span>
-          <div className="inline-flex gap-0.5 rounded-full bg-black/10 p-[3px] shadow-inner" aria-label="Time bucket">
-            {buckets.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setBucket(item)}
-                aria-pressed={bucket === item}
-                className={`cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  bucket === item ? "bg-accent text-[#3a2e00] shadow-sm" : "text-primary-soft hover:text-white"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-          <span className="ml-auto hidden text-right lg:block">
-            QTD quarter-to-date · YTD year-to-date · LTD launch-to-date · applies to time-series tiles only
-          </span>
-        </div>
-      ) : null}
     </header>
   );
 }

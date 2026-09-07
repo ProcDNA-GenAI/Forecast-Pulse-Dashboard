@@ -1,12 +1,12 @@
 "use client";
 
-import { Bot, ChevronDown, Copy, Database, Lightbulb, UserRound } from "lucide-react";
+import Image from "next/image";
+import { ChevronDown, Copy, Database, Lightbulb } from "lucide-react";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import { useId, useMemo, useState, type ReactNode } from "react";
-import type { AuthUser } from "@/utils/auth/types";
 import { formatDocumentAnswer } from "@/utils/chat/answer-format";
 import type { AnswerDataSource, ChatMessage as ChatMessageModel, DaeChunk } from "@/utils/chat/types";
 import { withDisplayProductName } from "@/utils/product-name";
@@ -147,13 +147,12 @@ function AssistantAnswer({ message, onAsk }: { message: ChatMessageModel; onAsk:
     : meta?.charts?.length
       ? [{ recommendedIndex: 0, variants: meta.charts }]
       : [];
+  const hasRichContent = Boolean(meta?.streamingChart || chartGroups.length || meta?.resultTable);
 
   if (isDocumentAnswer && message.status === "streaming" && !formattedContent) {
     return (
       <div className="flex items-start gap-2.5">
-        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-sm">
-          <Bot className="h-4 w-4" aria-hidden="true" />
-        </span>
+        <Image src="/AILogo.svg" alt="" width={22} height={24} className="mt-1 h-6 w-[22px] shrink-0" />
         <div className="min-w-0 pt-0.5">
           <DocumentProcessing steps={meta?.processingSteps || []} />
           <p className="mt-1 pl-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted">
@@ -167,11 +166,9 @@ function AssistantAnswer({ message, onAsk }: { message: ChatMessageModel; onAsk:
   return (
     <>
       <div className="flex items-start gap-2.5">
-        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-sm">
-          <Bot className="h-4 w-4" aria-hidden="true" />
-        </span>
-        <div className="min-w-0 max-w-[calc(100%-2.625rem)] flex-1">
-          <div className={`rounded-2xl rounded-tl-sm border px-3.5 py-3 shadow-sm ${message.status === "error" ? "border-danger/20 bg-danger/5" : "border-primary/10 bg-surface"}`}>
+        <Image src="/AILogo.svg" alt="" width={22} height={24} className="mt-1 h-6 w-[22px] shrink-0" />
+        <div className="min-w-0 max-w-[calc(100%-2rem)] flex-1">
+          <div className={`${hasRichContent ? "w-full" : "w-fit"} max-w-full rounded-lg border px-3.5 py-3 ${message.status === "error" ? "border-danger/20 bg-danger/5" : "border-[#e1e2e5] bg-white"}`}>
             {!isDocumentAnswer ? (
               <ChatProcessing
                 steps={meta?.processingSteps || []}
@@ -247,28 +244,18 @@ function AssistantAnswer({ message, onAsk }: { message: ChatMessageModel; onAsk:
   );
 }
 
-function UserMessage({ message, user }: { message: ChatMessageModel; user: AuthUser | null }) {
-  const initials = (user?.displayName || user?.username || "You")
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join("");
-
+function UserMessage({ message }: { message: ChatMessageModel }) {
   return (
-    <div className="flex items-start justify-end gap-2.5">
-      <div className="max-w-[82%] rounded-2xl rounded-tr-sm bg-primary-deep px-3.5 py-2.5 text-[13px] leading-[1.55] text-white shadow-sm">
+    <div className="flex items-start justify-end">
+      <div className="max-w-[78%] rounded-lg rounded-tr-sm bg-[#EAEEF4] px-3.5 py-3 text-right text-[13px] leading-[1.55] text-[#111827]">
         <p className="whitespace-pre-wrap break-words">{message.content}</p>
       </div>
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-primary-deep shadow-sm" title={user?.displayName || user?.username || "You"}>
-        {initials || <UserRound className="h-4 w-4" aria-hidden="true" />}
-      </span>
     </div>
   );
 }
 
-export function ChatMessage({ message, user, onAsk }: { message: ChatMessageModel; user: AuthUser | null; onAsk: (question: string) => void }) {
+export function ChatMessage({ message, onAsk }: { message: ChatMessageModel; onAsk: (question: string) => void }) {
   return message.role === "user"
-    ? <UserMessage message={message} user={user} />
+    ? <UserMessage message={message} />
     : <AssistantAnswer message={message} onAsk={onAsk} />;
 }
