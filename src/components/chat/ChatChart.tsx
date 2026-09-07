@@ -6,6 +6,130 @@ import { useEffect, useId, useMemo, useRef, useState, type RefObject } from "rea
 import { downloadChartPng, downloadChartPptx } from "@/utils/chat/chart-downloads";
 import type { ChartGroup, ChartPayload } from "@/utils/chat/types";
 
+type ChartLabelParams = {
+  name?: string;
+  seriesName?: string;
+  value?: unknown;
+  data?: unknown;
+  encode?: Record<string, number[]>;
+  dimensionNames?: string[];
+};
+
+function humanizeLabel(value: string) {
+  return value
+    .replaceAll("_", " ")
+    .replaceAll("-", " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function formatLabelValue(value: unknown): string {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value);
+  }
+  if (typeof value === "string") return value;
+  return "";
+}
+
+function encodedValue(params: ChartLabelParams): unknown {
+  const value = params.value;
+  if (typeof value === "number" || typeof value === "string") return value;
+
+  if (Array.isArray(value)) {
+    const encodedIndexes = [
+      ...(params.encode?.y || []),
+      ...(params.encode?.x || []),
+      ...(params.encode?.value || []),
+    ];
+    for (const index of encodedIndexes) {
+      const candidate = value[index];
+      if (typeof candidate === "number") return candidate;
+    }
+    return [...value].reverse().find((candidate) => typeof candidate === "number") ?? value.at(-1);
+  }
+
+  const record = (value && typeof value === "object" ? value : params.data) as Record<string, unknown> | undefined;
+  if (!record) return "";
+  const encodedDimensions = [
+    ...(params.encode?.y || []),
+    ...(params.encode?.x || []),
+    ...(params.encode?.value || []),
+  ];
+  for (const index of encodedDimensions) {
+    const dimension = params.dimensionNames?.[index];
+    const candidate = dimension ? record[dimension] : undefined;
+    if (typeof candidate === "number") return candidate;
+  }
+  return Object.values(record).find((candidate) => typeof candidate === "number") ?? "";
+}
+
+function chartDataLabel(params: ChartLabelParams, useCategoryName = false, metricLabel = "") {
+  const value = formatLabelValue(encodedValue(params));
+  const rawName = useCategoryName ? params.name : params.seriesName;
+  const name = rawName ? useCategoryName ? String(rawName) : humanizeLabel(String(rawName)) : "";
+  const metric = metricLabel ? humanizeLabel(metricLabel) : "";
+  const valueLine = metric && metric !== name ? `${metric}, ${value}` : value;
+  return name && valueLine ? `${name}\n${valueLine}` : valueLine || name;
+}
+
+function isHorizontalBar(option: echarts.EChartsOption) {
+  const firstAxis = (axis: unknown) => Array.isArray(axis) ? axis[0] : axis;
+  const xAxis = firstAxis(option.xAxis) as { type?: string } | undefined;
+  const yAxis = firstAxis(option.yAxis) as { type?: string } | undefined;
+  return xAxis?.type === "value" && yAxis?.type === "category";
+}
+
+function normalizeSeriesLabels(
+  series: echarts.EChartsOption["series"],
+  horizontalBar: boolean,
+  valueAxisLabel: string,
+) {
+  if (!series) return series;
+  const seriesCount = Array.isArray(series) ? series.length : 1;
+  const normalizeItem = (item: unknown) => {
+    const seriesItem = (item && typeof item === "object" ? item : {}) as Record<string, unknown>;
+    const type = String(seriesItem.type || "").toLowerCase();
+    const existingLabel = (seriesItem.label && typeof seriesItem.label === "object"
+      ? seriesItem.label
+      : {}) as Record<string, unknown>;
+    const isStacked = Boolean(seriesItem.stack);
+    const supported = ["bar", "line", "scatter", "pie", "funnel", "treemap"].includes(type);
+    if (!supported) return seriesItem;
+
+    const useCategoryName = ["pie", "funnel", "treemap"].includes(type)
+      || (type === "bar" && seriesCount === 1);
+    const position = type === "bar"
+      ? isStacked ? "inside" : horizontalBar ? "right" : "top"
+      : type === "pie" ? "outside"
+        : type === "funnel" || type === "treemap" ? "inside"
+          : "top";
+
+    return {
+      ...seriesItem,
+      label: {
+        ...existingLabel,
+        show: true,
+        position,
+        distance: isStacked ? 0 : 6,
+        color: isStacked || type === "treemap" ? "#ffffff" : "#4b5563",
+        fontSize: 9,
+        lineHeight: 12,
+        formatter: (params: ChartLabelParams) => isStacked
+          ? formatLabelValue(encodedValue(params))
+          : chartDataLabel(params, useCategoryName, valueAxisLabel),
+      },
+      labelLayout: {
+        ...(seriesItem.labelLayout && typeof seriesItem.labelLayout === "object" ? seriesItem.labelLayout : {}),
+        hideOverlap: true,
+      },
+    };
+  };
+
+  return (Array.isArray(series) ? series.map(normalizeItem) : normalizeItem(series)) as echarts.EChartsOption["series"];
+}
+
 function fallbackOption(chart: ChartPayload): echarts.EChartsOption {
   const firstRow = chart.data[0];
   if (!firstRow) return {};
@@ -48,9 +172,18 @@ function normalizeChartOption(option: echarts.EChartsOption): echarts.EChartsOpt
       ? { ...option.legend, top: 8, bottom: undefined }
       : undefined;
 
+  const singleGrid = (!Array.isArray(option.grid) && option.grid ? option.grid : {}) as { top?: unknown };
   const grid = Array.isArray(option.grid)
-    ? option.grid.map((item) => ({ ...item, top: 58, containLabel: true }))
-    : { ...(option.grid || {}), top: 58, containLabel: true };
+    ? option.grid.map((item) => ({
+        ...item,
+        top: Math.max(typeof item.top === "number" ? item.top : 0, 72),
+        containLabel: true,
+      }))
+    : {
+        ...(option.grid || {}),
+        top: Math.max(typeof singleGrid.top === "number" ? singleGrid.top : 0, 72),
+        containLabel: true,
+      };
 
   const normalizeAxis = (axis: unknown, isYAxis: boolean): unknown => {
     if (!axis) return axis;
@@ -78,11 +211,17 @@ function normalizeChartOption(option: echarts.EChartsOption): echarts.EChartsOpt
     return Array.isArray(axis) ? axis.map(normalizeItem) : normalizeItem(axis);
   };
 
+  const firstAxis = (axis: unknown) => Array.isArray(axis) ? axis[0] : axis;
+  const horizontalBar = isHorizontalBar(option);
+  const valueAxis = firstAxis(horizontalBar ? option.xAxis : option.yAxis) as { name?: unknown } | undefined;
+  const valueAxisLabel = typeof valueAxis?.name === "string" ? valueAxis.name : "";
+
   return {
     ...option,
     title,
     legend,
     grid,
+    series: normalizeSeriesLabels(option.series, horizontalBar, valueAxisLabel),
     xAxis: normalizeAxis(option.xAxis, false) as echarts.EChartsOption["xAxis"],
     yAxis: normalizeAxis(option.yAxis, true) as echarts.EChartsOption["yAxis"],
   };
