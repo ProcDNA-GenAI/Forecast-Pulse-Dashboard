@@ -5,7 +5,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { MarketTrajectoryChart } from "@/components/charts/ExecutiveCharts";
 import { AiSummaryPanel } from "@/components/dashboard/AiSummaryPanel";
 import { CardHeader, DashboardCard } from "@/components/dashboard/DashboardCard";
-import { DataTag, Legend, LegendItem, SegmentedControl } from "@/components/dashboard/DashboardControls";
+import { Legend, LegendItem, SegmentedControl } from "@/components/dashboard/DashboardControls";
 import { PageIntro, SectionHeading } from "@/components/dashboard/PageIntro";
 import {
   formatAssumptionValue,
@@ -28,7 +28,6 @@ import {
   ACTUALS_LABEL,
   ACTUALS_PERIOD,
   FORECAST_LABEL,
-  FORECAST_REFRESH_PERIOD,
 } from "@/utils/dashboard/periods";
 
 type SegmentFilter = "all" | SegmentGroup;
@@ -52,15 +51,17 @@ function MetricCard({
   valueSuffix,
   detail,
   detailClassName,
+  tooltip,
 }: {
   label: string;
   value: string;
   valueSuffix?: string;
   detail?: ReactNode;
   detailClassName?: string;
+  tooltip?: ReactNode;
 }) {
   return (
-    <section className="min-h-[118px] rounded-[16px] border border-white/70 bg-white/95 px-4 py-[15px] shadow-[0_5px_18px_rgba(47,84,149,0.055)] backdrop-blur-sm">
+    <section className="group relative min-h-[118px] rounded-[16px] border border-white/70 bg-white/95 px-4 py-[15px] shadow-[0_5px_18px_rgba(47,84,149,0.055)] backdrop-blur-sm">
       <div className="text-xs text-muted">{label}</div>
       <div className="my-1.5 flex flex-wrap items-baseline gap-x-1.5 text-[27px] font-bold leading-none text-orange">
         {value}
@@ -72,6 +73,12 @@ function MetricCard({
             <Image src="/UpArrowGreen.svg" alt="" width={11} height={11} className="mt-px h-[11px] w-[11px] shrink-0" />
             <span className="min-w-0 whitespace-normal break-words">{detail}</span>
           </div>
+        </div>
+      ) : null}
+      {tooltip ? (
+        <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 z-20 w-72 -translate-x-1/2 rounded-xl border border-[#dfe5ee] bg-white px-3 py-2 text-[11px] leading-[1.45] text-content opacity-0 shadow-[0_12px_28px_rgba(47,84,149,0.16)] transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+          {tooltip}
+          <span className="absolute left-1/2 top-full h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 border-b border-r border-[#dfe5ee] bg-white" />
         </div>
       ) : null}
     </section>
@@ -89,7 +96,6 @@ function MarketSection({ data }: { data: DashboardData }) {
       <DashboardCard>
         <CardHeader
           title={`Treated LLT market: ${ACTUALS_LABEL} vs ${FORECAST_LABEL}`}
-          action={<DataTag>forecast refreshed {FORECAST_REFRESH_PERIOD}</DataTag>}
         />
         <Legend>
           <LegendItem
@@ -107,11 +113,6 @@ function MarketSection({ data }: { data: DashboardData }) {
         <div className="relative mt-2.5 h-[230px]">
           <MarketTrajectoryChart points={data.market} />
         </div>
-        {/* <p className="mt-2 text-[11.5px] text-muted">
-          The forecast was refreshed in <strong>{FORECAST_REFRESH_PERIOD}</strong>, while the latest outlook
-          incorporates actuals through <strong>{ACTUALS_PERIOD}</strong>. The current variance compounds into a
-          larger market-size deviation over the 2027-43 outlook.
-        </p> */}
         <div className="overflow-x-auto">
           <table className="mt-2.5 w-full min-w-[520px] border-collapse text-xs tabular-nums">
             <thead>
@@ -241,7 +242,7 @@ function AssumptionSection({ data }: { data: DashboardData }) {
     <>
       <SectionHeading emphasis="Are our launch assumptions holding?" />
       <DashboardCard>
-        <CardHeader title={`${FORECAST_LABEL} vs ${ACTUALS_LABEL}`} action={<DataTag>latest evidence · Dec &apos;26</DataTag>} />
+        <CardHeader title={`${FORECAST_LABEL} vs ${ACTUALS_LABEL}`} />
         <div className="overflow-x-auto">
           <table className="mt-1.5 w-full min-w-[860px] border-separate border-spacing-0 text-[12.5px] tabular-nums">
             <thead>
@@ -394,6 +395,16 @@ export function ExecutiveDashboard({ data }: { data: DashboardData }) {
             label="Segments showing meaningful movement"
             value={`${topMovers.length}/${data.segments.length}`}
             valueSuffix={`(${ACTUALS_PERIOD})`}
+            tooltip={
+              <div>
+                <div className="mb-1 font-semibold text-primary">Meaningful movers</div>
+                <ul className="m-0 list-disc space-y-1 pl-4">
+                  {topMovers.map((segment) => (
+                    <li key={segment.name}>{segment.name}</li>
+                  ))}
+                </ul>
+              </div>
+            }
           />
         </div>
       </section>

@@ -13,26 +13,11 @@ import {
   ProductMixCard,
   TrendCard,
 } from "./MarketIndicatorCards";
-import { formatPercent, latestComparison, latestPoint } from "@/utils/dashboard/formatters";
 import type { DashboardData } from "@/utils/dashboard/types";
-import { FORECAST_LABEL } from "@/utils/dashboard/periods";
 
 type IndicatorView = "market" | "launch";
 
-function IndicatorsSummary({ data, activeView }: { data: DashboardData; activeView: IndicatorView }) {
-  const share = latestComparison(data.npsShare);
-  const firstMix = data.productMix[0];
-  const lastMix = data.productMix.at(-1);
-  const firstHcp = data.activeHcp[0];
-  const lastHcp = latestPoint(data.activeHcp);
-  const lastInflow = data.inflow.at(-1);
-  const persistency = latestComparison(data.persistency);
-  const compliance = latestComparison(data.compliance);
-
-  if (!firstMix || !lastMix || !firstHcp || !lastInflow) {
-    throw new Error("Market indicator data is required for Key Insights.");
-  }
-
+function IndicatorsSummary({ activeView }: { activeView: IndicatorView }) {
   return (
     <AiSummaryPanel
       summary={
@@ -40,22 +25,29 @@ function IndicatorsSummary({ data, activeView }: { data: DashboardData; activeVi
           {activeView === "market" ? (
             <>
               <li>
-                The advanced LLT patient pool changed from {firstMix.totalPatientsMillions.toFixed(2)}M in {firstMix.label} to {lastMix.totalPatientsMillions.toFixed(2)}M in {lastMix.label}.
+                The advanced LLT pool has expanded steadily, increasing the population potentially eligible for Obi ahead of launch.
+                <span className="mt-1 block">+23% since Jan &apos;25 | 1.11M patients | +8% vs. Sep &apos;26 forecast</span>
               </li>
               <li>
-                The active HCP universe increased from {firstHcp.value.toLocaleString()} in {firstHcp.label} to {lastHcp.value.toLocaleString()} in {lastHcp.label}.
+                The active prescriber universe is expanding, suggesting a broader pool of HCPs to engage ahead of launch.
+              </li>
+              <li>
+                Lipfendra is gaining share slightly faster than expected, indicating early competitive momentum ahead of Obi&apos;s launch.
               </li>
             </>
           ) : (
             <>
               <li>
-                {data.meta.productName}&apos;s NPS market share is {formatPercent(share.actual, 1)} compared with {formatPercent(share.forecast, 1)} in the {FORECAST_LABEL} at {share.label}.
+                Lipfendra is gaining share ahead of plan, reaching 10.4% in December versus 10.0% forecast.
               </li>
               <li>
-                At {lastInflow.label}, {formatPercent(lastInflow.switchFromAdvanced, 0)} of starts are switches from other advanced brands and {formatPercent(lastInflow.newlyIntensified, 0)} are newly intensified.
+                Early patient retention is stronger than expected, with M6 persistence 7pp above forecast, supporting sustained uptake.
               </li>
               <li>
-                Persistency is {formatPercent(persistency.actual, 0)} compared with {formatPercent(persistency.forecast, 0)} in the {FORECAST_LABEL} at {persistency.label}. Compliance is {formatPercent(compliance.actual, 0)} compared with {formatPercent(compliance.forecast, 0)} at {compliance.label}.
+                Patient acquisition remains heavily dependent on switching from existing advanced therapies, highlighting competitive conversion as a critical launch lever.
+              </li>
+              <li>
+                Prescriber breadth is expanding, but depth remains concentrated, suggesting an opportunity to convert broader HCP engagement into repeat prescribing.
               </li>
             </>
           )}
@@ -112,7 +104,7 @@ export function MarketIndicatorsDashboard({ data }: { data: DashboardData }) {
       </div>
 
       <div className="mb-4">
-        <IndicatorsSummary data={data} activeView={activeView} />
+        <IndicatorsSummary activeView={activeView} />
       </div>
 
       <section className="mt-5 rounded-[18px] border border-border bg-white p-4 sm:p-5">

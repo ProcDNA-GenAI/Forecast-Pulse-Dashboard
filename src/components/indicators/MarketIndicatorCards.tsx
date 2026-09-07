@@ -16,7 +16,7 @@ import type {
   ProductMixPoint,
   TrendPoint,
 } from "@/utils/dashboard/types";
-import { ACTUALS_PERIOD, FORECAST_LABEL, FORECAST_REFRESH_PERIOD } from "@/utils/dashboard/periods";
+import { FORECAST_LABEL, FORECAST_REFRESH_PERIOD } from "@/utils/dashboard/periods";
 
 function colorFromToken(colors: ChartColors, token: keyof ChartColors): string {
   return colors[token];
@@ -121,9 +121,7 @@ export function NpsMarketShareCard({ points, productName }: { points: NpsPoint[]
   const colors = useChartColors();
   const [mode, setMode] = useState<"share" | "count">("share");
   const visible = takeForBucket(points, bucket);
-  const firstPeriod = visible[0]?.label ?? ACTUALS_PERIOD;
-  const lastPeriod = visible.at(-1)?.label ?? ACTUALS_PERIOD;
-  const actualsLabel = `Actuals (${firstPeriod}-${lastPeriod})`;
+  const actualsLabel = "Actuals";
 
   const data: ChartData<"line", number[], string> = {
     labels: visible.map((point) => point.label),
@@ -258,7 +256,6 @@ export function PatientInflowCard({ points, productName }: { points: InflowPoint
   const { bucket } = useDashboard();
   const colors = useChartColors();
   const visible = takeForBucket(points, bucket);
-  const periodLabel = `${visible[0]?.label ?? ACTUALS_PERIOD}-${visible.at(-1)?.label ?? ACTUALS_PERIOD}`;
 
   const data: ChartData<"line", number[], string> = {
     labels: visible.map((point) => point.label),
@@ -348,7 +345,7 @@ export function PatientInflowCard({ points, productName }: { points: InflowPoint
 
   return (
     <DashboardCard>
-      <CardHeader title={`${productName} patient inflow source`} action={<DataTag>{periodLabel}</DataTag>} />
+      <CardHeader title={`${productName} patient inflow source`} />
       <Legend>
         <LegendItem color="var(--color-teal)" label="Newly intensified" />
         <LegendItem color="var(--color-primary)" label="Switch from advanced" />
@@ -360,7 +357,7 @@ export function PatientInflowCard({ points, productName }: { points: InflowPoint
         </div>
         <div className="rounded-xl border border-border bg-page/60 px-3 py-3">
           <p className="mb-1 text-center text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">
-            Overall mix ({periodLabel})
+            Overall mix
           </p>
           <div className="relative mx-auto h-[170px] max-w-[230px]">
             <Doughnut data={overallData} options={overallOptions} />
@@ -384,9 +381,8 @@ export function PatientInflowCard({ points, productName }: { points: InflowPoint
 }
 
 export function PersistencyCard({ points, productName }: { points: ComparisonPoint[]; productName: string }) {
-  const { bucket } = useDashboard();
   const colors = useChartColors();
-  const visible = takeForBucket(points, bucket);
+  const visible = points;
 
   const data: ChartData<"line", number[], string> = {
     labels: visible.map((point) => point.label),
@@ -432,7 +428,7 @@ export function PersistencyCard({ points, productName }: { points: ComparisonPoi
 
   return (
     <DashboardCard>
-      <CardHeader title="Persistency" />
+      <CardHeader title="Persistency" action={<DataTag>time n/a</DataTag>} />
       <Legend>
         <LegendItem color="var(--color-orange)" kind="line" label={`${productName} persistency`} />
         <LegendItem color="var(--color-chart-grey)" kind="line" dashed label={`Blended forecast curve (${FORECAST_REFRESH_PERIOD})`} />
@@ -448,7 +444,7 @@ export function ComplianceCard({ points, productName }: { points: ComparisonPoin
   const { bucket } = useDashboard();
   const colors = useChartColors();
   const visible = takeForBucket(points, bucket);
-  const actualsLabel = `${productName} compliance (${visible[0]?.label ?? ACTUALS_PERIOD}-${visible.at(-1)?.label ?? ACTUALS_PERIOD})`;
+  const actualsLabel = `${productName} compliance`;
 
   const data: ChartData<"line", number[], string> = {
     labels: visible.map((point) => point.label),
