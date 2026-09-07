@@ -53,7 +53,7 @@ export function MarketTrajectoryChart({ points }: { points: MarketPoint[] }) {
         ticks: { font: { size: 9 }, maxTicksLimit: 10 },
       },
       y: {
-        grid: { color: colors.grid },
+        grid: { display: false },
         title: { display: true, text: "Treated LLT market (M)", color: colors.muted, font: { size: 9, weight: 600 } },
         ticks: { font: { size: 9 }, callback: (value) => `${value}M` },
       },

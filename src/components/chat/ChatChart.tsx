@@ -25,7 +25,7 @@ function fallbackOption(chart: ChartPayload): echarts.EChartsOption {
       data: chart.data.map((row) => String(row[categoryKey] ?? "")),
       axisLabel: { fontSize: 10, hideOverlap: true },
     },
-    yAxis: { type: "value", axisLabel: { fontSize: 10 } },
+    yAxis: { type: "value", nameGap: 72, axisLabel: { fontSize: 10 }, splitLine: { show: false } },
     series: valueKeys.map((key) => ({
       name: key,
       type,
@@ -49,14 +49,42 @@ function normalizeChartOption(option: echarts.EChartsOption): echarts.EChartsOpt
       : undefined;
 
   const grid = Array.isArray(option.grid)
-    ? option.grid.map((item) => ({ ...item, top: 58 }))
-    : { ...(option.grid || {}), top: 58 };
+    ? option.grid.map((item) => ({ ...item, top: 58, containLabel: true }))
+    : { ...(option.grid || {}), top: 58, containLabel: true };
+
+  const normalizeAxis = (axis: unknown, isYAxis: boolean): unknown => {
+    if (!axis) return axis;
+
+    const normalizeItem = (item: unknown) => {
+      const axisItem = (item && typeof item === "object" ? item : {}) as Record<string, unknown>;
+      const splitLine = (axisItem.splitLine && typeof axisItem.splitLine === "object"
+        ? axisItem.splitLine
+        : {}) as Record<string, unknown>;
+      const axisLabel = (axisItem.axisLabel && typeof axisItem.axisLabel === "object"
+        ? axisItem.axisLabel
+        : {}) as Record<string, unknown>;
+      const existingNameGap = typeof axisItem.nameGap === "number" ? axisItem.nameGap : 0;
+
+      return {
+        ...axisItem,
+        splitLine: { ...splitLine, show: false },
+        axisLabel: { ...axisLabel, margin: 9 },
+        ...(isYAxis && axisItem.name
+          ? { nameLocation: "middle", nameGap: Math.max(existingNameGap, 72) }
+          : {}),
+      };
+    };
+
+    return Array.isArray(axis) ? axis.map(normalizeItem) : normalizeItem(axis);
+  };
 
   return {
     ...option,
     title,
     legend,
     grid,
+    xAxis: normalizeAxis(option.xAxis, false) as echarts.EChartsOption["xAxis"],
+    yAxis: normalizeAxis(option.yAxis, true) as echarts.EChartsOption["yAxis"],
   };
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { DATA_AS_OF_PERIOD, FORECAST_LABEL } from "@/utils/dashboard/periods";
 import { useDashboard, type TimeBucket } from "./DashboardProvider";
@@ -8,9 +9,11 @@ import { useDashboard, type TimeBucket } from "./DashboardProvider";
 const buckets: TimeBucket[] = ["QTD", "YTD", "LTD"];
 
 export function DashboardHeader() {
+  const pathname = usePathname();
   const { bucket, setBucket } = useDashboard();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const showTimeBucket = pathname !== "/";
 
   useEffect(() => {
     if (!isOpen) return;
@@ -42,7 +45,7 @@ export function DashboardHeader() {
         <span className="hidden text-[10px] text-muted xl:inline">
           Data as of {DATA_AS_OF_PERIOD} · vs. {FORECAST_LABEL}
         </span>
-        <div className="flex shrink-0 items-center gap-2.5 text-[11px] font-semibold text-content">
+        {showTimeBucket ? <div className="flex shrink-0 items-center gap-2.5 text-[11px] font-semibold text-content">
           <span className="hidden lg:inline">Time Bucket</span>
           <div className="relative" ref={menuRef}>
             <button
@@ -90,7 +93,7 @@ export function DashboardHeader() {
               </div>
             ) : null}
           </div>
-        </div>
+        </div> : null}
       </div>
     </header>
   );

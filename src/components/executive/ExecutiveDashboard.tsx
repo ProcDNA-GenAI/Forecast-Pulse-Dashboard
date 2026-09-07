@@ -68,9 +68,9 @@ function MetricCard({
       </div>
       {detail ? (
         <div className="mt-2 border-t border-[#ededed] pt-2">
-          <div className={`inline-flex max-w-full items-center gap-1 rounded-full bg-success/10 px-2 py-1 text-[11px] font-semibold leading-none ${detailClassName || "text-success"}`}>
-            <Image src="/UpArrowGreen.svg" alt="" width={11} height={11} className="h-[11px] w-[11px] shrink-0" />
-            <span className="whitespace-nowrap">{detail}</span>
+          <div className={`inline-flex w-fit max-w-full items-start gap-1 rounded-full bg-success/10 px-2 py-1 text-[11px] font-semibold leading-tight ${detailClassName || "text-success"}`}>
+            <Image src="/UpArrowGreen.svg" alt="" width={11} height={11} className="mt-px h-[11px] w-[11px] shrink-0" />
+            <span className="min-w-0 whitespace-normal break-words">{detail}</span>
           </div>
         </div>
       ) : null}

@@ -75,7 +75,7 @@ export function ProductMixCard({ points }: { points: ProductMixPoint[] }) {
       y: {
         stacked: true,
         max: mode === "pct" ? 100 : undefined,
-        grid: { color: colors.grid },
+        grid: { display: false },
         title: {
           display: true,
           text: mode === "pct" ? "Patient share (%)" : "Patients (M)",
@@ -165,7 +165,7 @@ export function NpsMarketShareCard({ points, productName }: { points: NpsPoint[]
     scales: {
       x: { grid: { display: false }, ticks: { font: { size: 9 } } },
       y: {
-        grid: { color: colors.grid },
+        grid: { display: false },
         title: { display: true, text: mode === "share" ? "NPS Share" : "NPS Count", font: { size: 9 } },
         ticks: {
           font: { size: 9 },
@@ -237,7 +237,7 @@ export function TrendCard({ title, points, colorToken, valueLabel, tickLabel, yA
     scales: {
       x: { grid: { display: false }, ticks: { font: { size: 9 } } },
       y: {
-        grid: { color: colors.grid },
+        grid: { display: false },
         title: yAxisLabel ? { display: true, text: yAxisLabel, color: colors.muted, font: { size: 9, weight: 600 } } : undefined,
         ticks: { font: { size: 8 }, callback: (value) => tickLabel(Number(value)) },
       },
@@ -308,7 +308,7 @@ export function PatientInflowCard({ points, productName }: { points: InflowPoint
       y: {
         stacked: true,
         max: 100,
-        grid: { color: colors.grid },
+        grid: { display: false },
         title: { display: true, text: "Patient share (%)", color: colors.muted, font: { size: 9, weight: 600 } },
         ticks: { font: { size: 9 }, callback: (value) => `${value}%` },
       },
@@ -423,7 +423,7 @@ export function PersistencyCard({ points, productName }: { points: ComparisonPoi
       y: {
         min: 50,
         max: 100,
-        grid: { color: colors.grid },
+        grid: { display: false },
         title: { display: true, text: "Persistency (%)", color: colors.muted, font: { size: 9, weight: 600 } },
         ticks: { font: { size: 9 }, callback: (value) => `${value}%` },
       },
@@ -487,7 +487,7 @@ export function ComplianceCard({ points, productName }: { points: ComparisonPoin
       y: {
         min: 70,
         max: 90,
-        grid: { color: colors.grid },
+        grid: { display: false },
         title: { display: true, text: "Compliance (%)", color: colors.muted, font: { size: 9, weight: 600 } },
         ticks: { font: { size: 9 }, callback: (value) => `${value}%` },
       },
@@ -548,7 +548,7 @@ export function PrescriberCard({ points }: { points: PrescriberPoint[] }) {
       x: { grid: { display: false }, ticks: { font: { size: 10 } } },
       y: {
         position: "left",
-        grid: { color: colors.grid },
+        grid: { display: false },
         title: { display: true, text: "Writers", font: { size: 9 } },
         ticks: { font: { size: 9 } },
       },
@@ -591,7 +591,7 @@ export function PrescriberCard({ points }: { points: PrescriberPoint[] }) {
     },
     scales: {
       x: {
-        grid: { color: colors.grid },
+        grid: { display: false },
         title: { display: true, text: "Writers", color: colors.muted, font: { size: 9, weight: 600 } },
         ticks: { font: { size: 9 } },
       },
