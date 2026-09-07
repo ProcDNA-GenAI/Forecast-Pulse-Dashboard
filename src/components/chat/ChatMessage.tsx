@@ -247,7 +247,7 @@ function AssistantAnswer({ message, onAsk }: { message: ChatMessageModel; onAsk:
 function UserMessage({ message }: { message: ChatMessageModel }) {
   return (
     <div className="flex items-start justify-end">
-      <div className="max-w-[78%] rounded-lg rounded-tr-sm bg-[#EAEEF4] px-3.5 py-3 text-right text-[13px] leading-[1.55] text-[#111827]">
+      <div className="max-w-[78%] rounded-lg rounded-tr-sm bg-[#EAEEF4] px-3.5 py-3 text-left text-[13px] leading-[1.55] text-[#111827]">
         <p className="whitespace-pre-wrap break-words">{message.content}</p>
       </div>
     </div>
