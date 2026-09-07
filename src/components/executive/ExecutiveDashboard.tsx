@@ -312,21 +312,21 @@ function ExecutiveSummaryPanel() {
       summary={
         <ul className="m-0 list-disc space-y-3 pl-5">
           <li>
-            <p className="m-0 font-semibold text-[#2C7358]">Opportunity - LDL-C market is tracking ahead of expectations</p>
+            <p className="m-0 font-semibold text-[#2C7358]">LDL-C market is tracking ahead of expectations</p>
             <p className="m-0 mt-1 text-content">
               Market growth is running at 2.1% CAGR vs. 1.6% forecast, while the advanced-LLT pool has increased ~8% over
               six months. <strong>The addressable opportunity may be expanding faster than anticipated.</strong>
             </p>
           </li>
           <li>
-            <p className="m-0 font-semibold text-[#2C7358]">Opportunity - Patients are escalating faster than expected</p>
+            <p className="m-0 font-semibold text-[#2C7358]">Patients are escalating faster than expected</p>
             <p className="m-0 mt-1 text-content">
               Time to advanced therapy is currently 7.3 months vs. 8.4 months forecast.{" "}
               <strong>Earlier escalation could increase the near-term treatment opportunity if access can support the increased demand.</strong>
             </p>
           </li>
           <li>
-            <p className="m-0 font-semibold text-[#9a6a12]">Watch - Patient mix is beginning to shift across key target segments</p>
+            <p className="m-0 font-semibold text-[#9a6a12]">Patient mix is beginning to shift across key target segments</p>
             <p className="m-0 mt-1 text-content">
               Three of 14 segments have moved meaningfully, led by <em>PP without T2D - Other Risk Factors</em>.{" "}
               <strong>
@@ -336,7 +336,7 @@ function ExecutiveSummaryPanel() {
             </p>
           </li>
           <li>
-            <p className="m-0 font-semibold text-[#b23b2c]">Action - Access is not keeping pace with the opportunity</p>
+            <p className="m-0 font-semibold text-[#b23b2c]">Access is not keeping pace with the opportunity</p>
             <p className="m-0 mt-1 text-content">
               Access is currently 39% vs. 41% forecast while several other market indicators are tracking ahead.{" "}
               <strong>This assumption warrants review as part of the next launch outlook refresh.</strong>
