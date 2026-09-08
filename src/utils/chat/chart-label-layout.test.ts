@@ -18,7 +18,7 @@ function params(value: number, maxValue: number, seriesIndex: number): LabelLayo
   return {
     dataIndex: 0,
     seriesIndex,
-    text: `Series ${seriesIndex}\nValue: ${value.toLocaleString("en-US")}`,
+    text: value.toLocaleString("en-US"),
     align: "center",
     verticalAlign: "bottom",
     rect: { x: seriesIndex * 100, y: plotHeight - height, width: 70, height },
@@ -109,7 +109,7 @@ test("ECharts SVG rendering retains every non-zero label for all requested datas
           padding: [4, 4],
           fontSize: 9,
           lineHeight: 12,
-          formatter: `Contribution ${seriesIndex + 1}\nValue: ${value.toLocaleString("en-US")}`,
+          formatter: value.toLocaleString("en-US"),
         },
         labelLayout: (labelParams: LabelLayoutOptionCallbackParams) => barLabelLayout({
           params: labelParams,
@@ -121,17 +121,18 @@ test("ECharts SVG rendering retains every non-zero label for all requested datas
     const svg = chart.renderToSVGString();
     values.forEach((value, seriesIndex) => {
       if (value === 0) return;
-      assert.match(svg, new RegExp(`Contribution ${seriesIndex + 1}`));
-      assert.ok(svg.includes(`Value: ${value.toLocaleString("en-US")}`));
+      assert.ok(svg.includes(value.toLocaleString("en-US")));
     });
 
-    const labelRects = chart.getZr().storage.getDisplayList().flatMap((element) => {
-      const text = (element as unknown as { style?: { text?: unknown } }).style?.text;
-      if (typeof text !== "string" || !text.startsWith("Value:")) return [];
+    const labelRects = values.map((_value, seriesIndex) => {
+      const bar = chart.getModel().getSeriesByIndex(seriesIndex).getData().getItemGraphicEl(0);
+      assert.ok(bar);
+      const element = bar.getTextContent();
+      assert.ok(element);
       const rect = element.getBoundingRect().clone();
       const transform = element.getComputedTransform();
       if (transform) rect.applyTransform(transform);
-      return [rect];
+      return rect;
     });
     chart.dispose();
     assert.equal(labelRects.length, 3);

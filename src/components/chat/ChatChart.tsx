@@ -24,16 +24,6 @@ type ChartLabelParams = {
   dimensionNames?: string[];
 };
 
-function humanizeLabel(value: string) {
-  return value
-    .replaceAll("_", " ")
-    .replaceAll("-", " ")
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (character) => character.toUpperCase());
-}
-
 function formatLabelValue(value: unknown): string {
   if (typeof value === "number" && Number.isFinite(value)) {
     return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value);
@@ -74,14 +64,6 @@ function encodedValue(params: ChartLabelParams): unknown {
   return Object.values(record).find((candidate) => typeof candidate === "number") ?? "";
 }
 
-function chartDataLabel(params: ChartLabelParams, useCategoryName = false) {
-  const value = formatLabelValue(encodedValue(params));
-  const rawName = useCategoryName ? params.name : params.seriesName;
-  const name = rawName ? useCategoryName ? String(rawName) : humanizeLabel(String(rawName)) : "";
-  const valueLine = `Value: ${value}`;
-  return name && valueLine ? `${name}\n${valueLine}` : valueLine || name;
-}
-
 function isHorizontalBar(option: echarts.EChartsOption) {
   const firstAxis = (axis: unknown) => Array.isArray(axis) ? axis[0] : axis;
   const xAxis = firstAxis(option.xAxis) as { type?: string } | undefined;
@@ -95,7 +77,6 @@ function normalizeSeriesLabels(
   viewport: ChartViewport,
 ) {
   if (!series) return series;
-  const seriesCount = Array.isArray(series) ? series.length : 1;
   const normalizeItem = (item: unknown) => {
     const seriesItem = (item && typeof item === "object" ? item : {}) as Record<string, unknown>;
     const type = String(seriesItem.type || "").toLowerCase();
@@ -106,8 +87,6 @@ function normalizeSeriesLabels(
     const supported = ["bar", "line", "scatter", "pie", "funnel", "treemap"].includes(type);
     if (!supported) return seriesItem;
 
-    const useCategoryName = ["pie", "funnel", "treemap"].includes(type)
-      || (type === "bar" && seriesCount === 1);
     const position = type === "bar"
       ? isStacked ? "inside" : horizontalBar ? "right" : "top"
       : type === "pie" ? "outside"
@@ -127,7 +106,7 @@ function normalizeSeriesLabels(
         padding: type === "bar" && !isStacked ? [4, 4] : existingLabel.padding,
         formatter: (params: ChartLabelParams) => isStacked
           ? formatLabelValue(encodedValue(params))
-          : chartDataLabel(params, useCategoryName),
+          : formatLabelValue(encodedValue(params)),
       },
       labelLayout: type === "bar" && !isStacked
         ? (params: LabelLayoutOptionCallbackParams) => barLabelLayout({ params, horizontal: horizontalBar, viewport })
