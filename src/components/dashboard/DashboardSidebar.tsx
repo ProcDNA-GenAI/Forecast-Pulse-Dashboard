@@ -77,6 +77,18 @@ export function DashboardSidebar({ isExpanded, onToggle }: DashboardSidebarProps
             </Link>
           );
         })}
+        <button
+          type="button"
+          title={!isExpanded ? "Market Access" : undefined}
+          className={`flex h-11 cursor-pointer items-center rounded-full text-white/85 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
+            isExpanded ? "justify-center px-0 sm:justify-start sm:gap-3 sm:px-3" : "justify-center px-0"
+          }`}
+        >
+          <span aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />
+          {isExpanded ? (
+            <span className="hidden whitespace-nowrap text-xs font-medium sm:block">Market Access</span>
+          ) : null}
+        </button>
       </nav>
 
       <div className="mt-auto border-t border-white/35 pt-5">

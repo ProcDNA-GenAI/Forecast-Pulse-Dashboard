@@ -41,18 +41,19 @@ body {
 .dashboard-hero {
   position: relative;
   isolation: isolate;
-  overflow: hidden;
+  overflow: visible;
   background-color: #fff8f3;
 }
 
 .dashboard-hero::before {
   position: absolute;
-  inset: -10px;
+  inset: 0;
   z-index: 0;
   content: "";
   background-image: url("/KPIbg.png");
   background-position: center;
   background-size: cover;
+  border-radius: inherit;
   /* filter: blur(4px); */
   opacity: 0.6;
   transform: scale(1.0);

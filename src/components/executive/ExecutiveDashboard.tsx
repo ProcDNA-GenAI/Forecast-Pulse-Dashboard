@@ -108,7 +108,7 @@ function MarketSection({ data }: { data: DashboardData }) {
       <SectionHeading emphasis="Is market evolving as expected?" />
       <DashboardCard>
         <CardHeader
-          title={`Treated LLT Market: Projected ${ACTUALS_LABEL} vs ${FORECAST_LABEL}`}
+          title={`Treated LLT Market: Projected (${ACTUALS_PERIOD}) vs ${FORECAST_LABEL}`}
         />
         <Legend>
           <LegendItem
@@ -221,11 +221,7 @@ function PatientSection({ data }: { data: DashboardData }) {
                     </td>
                     <td className="border-b border-[#f0efe9] px-2 py-1.5 text-right">{formatPercent(segment.forecast)}</td>
                     <td className="border-b border-[#f0efe9] px-2 py-1.5 text-right">{formatPercent(segment.latest)}</td>
-                    <td
-                      className={`border-b border-[#f0efe9] px-2 py-1.5 text-right font-semibold ${
-                        segment.change >= 0 ? "text-success" : "text-danger"
-                      }`}
-                    >
+                    <td className="border-b border-[#f0efe9] px-2 py-1.5 text-right text-content">
                       {formatPercentPoints(segment.change)}
                     </td>
                   </tr>
@@ -241,9 +237,9 @@ function PatientSection({ data }: { data: DashboardData }) {
 }
 
 function statusDotClass(status: Assumption["status"]): string {
-  if (status === "Watch") return "bg-warning";
-  if (status === "Take Action") return "bg-danger";
-  return "bg-success";
+  if (status === "Watch") return "bg-[#5274aa]";
+  if (status === "Take Action") return "bg-primary-deep";
+  return "bg-[#8aa6d0]";
 }
 
 function AssumptionSection({ data }: { data: DashboardData }) {
@@ -261,7 +257,7 @@ function AssumptionSection({ data }: { data: DashboardData }) {
               <tr className="text-[10px] uppercase tracking-[0.03em] text-muted">
                 <th className="border-b border-border px-[9px] py-[7px] text-left">Assumption (2026)</th>
                 <th className="border-b border-border px-[9px] py-[7px] text-right">{FORECAST_LABEL}</th>
-                <th className="border-b border-border px-[9px] py-[7px] text-right">Actuals (Dec &apos;26)</th>
+                <th className="border-b border-border px-[9px] py-[7px] text-right">{ACTUALS_LABEL}</th>
                 <th className="border-b border-border px-[9px] py-[7px] text-right">Variance</th>
                 <th className="border-b border-border px-[9px] py-[7px] text-left">Source</th>
                 <th className="border-b border-border px-[9px] py-[7px] text-center">Status</th>
@@ -277,11 +273,7 @@ function AssumptionSection({ data }: { data: DashboardData }) {
                   <td className="border-b border-[#f0efe9] px-[9px] py-2 text-right">
                     {formatAssumptionValue(assumption, assumption.current, assumption.currentDigits)}
                   </td>
-                  <td
-                    className={`border-b border-[#f0efe9] px-[9px] py-2 text-right font-semibold ${
-                      assumption.variance >= 0 ? "text-success" : "text-danger"
-                    }`}
-                  >
+                  <td className="border-b border-[#f0efe9] px-[9px] py-2 text-right text-content">
                     {formatAssumptionVariance(assumption)}
                   </td>
                   <td className="border-b border-[#f0efe9] px-[9px] py-2 text-left text-[11px] text-muted">
@@ -303,13 +295,13 @@ function AssumptionSection({ data }: { data: DashboardData }) {
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2.5">
-          <span className="inline-flex items-center gap-2 rounded-full bg-[#e4f4ea] px-3 py-1.5 text-[12.5px] font-semibold text-[#1d7a4d]">
+          <span className="inline-flex items-center gap-2 rounded-full bg-[#8aa6d0]/14 px-3 py-1.5 text-[12.5px] font-semibold text-[#7492bd]">
             <strong className="text-[15px]">{counts["On Track"]}</strong> On Track
           </span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-[#fdf3e0] px-3 py-1.5 text-[12.5px] font-semibold text-[#9a6a12]">
+          <span className="inline-flex items-center gap-2 rounded-full bg-[#5274aa]/10 px-3 py-1.5 text-[12.5px] font-semibold text-[#5274aa]">
             <strong className="text-[15px]">{counts.Watch}</strong> Watch
           </span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-[#fbe6e2] px-3 py-1.5 text-[12.5px] font-semibold text-[#b23b2c]">
+          <span className="inline-flex items-center gap-2 rounded-full bg-primary-deep/10 px-3 py-1.5 text-[12.5px] font-semibold text-primary-deep">
             <strong className="text-[15px]">{counts["Take Action"]}</strong> Take Action
           </span>
           <span className="ml-auto text-[12.5px] font-semibold text-violet">↑ {attentionCount} assumptions need attention</span>
