@@ -12,6 +12,8 @@ import type {
   ComparisonPoint,
   InflowPoint,
   NpsPoint,
+  PersistencyPoint,
+  PrescriberMonthlyPoint,
   PrescriberPoint,
   ProductMixPoint,
   TrendPoint,
@@ -380,21 +382,27 @@ export function PatientInflowCard({ points, productName }: { points: InflowPoint
   );
 }
 
-export function PersistencyCard({ points, productName }: { points: ComparisonPoint[]; productName: string }) {
+export function PersistencyCard({ points }: { points: PersistencyPoint[] }) {
   const colors = useChartColors();
   const visible = points;
+  const products = points[0]?.products.map((item) => item.product) ?? [];
+  const productColors = [colors.orange, colors.primary, colors.teal, colors.accent, colors.grey];
+  const lowestPersistency = Math.min(
+    ...visible.flatMap((point) => [point.forecast, ...point.products.map((item) => item.value)]),
+  ) * 100;
+  const yAxisMinimum = Math.max(0, Math.floor((lowestPersistency - 5) / 10) * 10);
 
   const data: ChartData<"line", number[], string> = {
     labels: visible.map((point) => point.label),
     datasets: [
-      {
-        label: `${productName} persistency`,
-        data: visible.map((point) => point.actual * 100),
-        borderColor: colors.orange,
-        borderWidth: 2.6,
-        pointRadius: 3,
+      ...products.map((product, index) => ({
+        label: product,
+        data: visible.map((point) => (point.products.find((item) => item.product === product)?.value ?? 0) * 100),
+        borderColor: productColors[index] ?? colors.primary,
+        borderWidth: product === products[0] ? 2.6 : 2.1,
+        pointRadius: 2.5,
         tension: 0.2,
-      },
+      })),
       {
         label: `Blended forecast curve (${FORECAST_REFRESH_PERIOD})`,
         data: visible.map((point) => point.forecast * 100),
@@ -417,7 +425,7 @@ export function PersistencyCard({ points, productName }: { points: ComparisonPoi
     scales: {
       x: { grid: { display: false }, ticks: { font: { size: 9 } } },
       y: {
-        min: 50,
+        min: yAxisMinimum,
         max: 100,
         grid: { display: false },
         title: { display: true, text: "Persistency (%)", color: colors.muted, font: { size: 9, weight: 600 } },
@@ -430,11 +438,47 @@ export function PersistencyCard({ points, productName }: { points: ComparisonPoi
     <DashboardCard>
       <CardHeader title="Persistency" action={<DataTag>time n/a</DataTag>} />
       <Legend>
-        <LegendItem color="var(--color-orange)" kind="line" label={`${productName} persistency`} />
+        {products.map((product, index) => (
+          <LegendItem key={product} color={productColors[index] ?? colors.primary} kind="line" label={product} />
+        ))}
         <LegendItem color="var(--color-chart-grey)" kind="line" dashed label={`Blended forecast curve (${FORECAST_REFRESH_PERIOD})`} />
       </Legend>
       <div className="relative mt-2.5 h-[200px]">
         <Line data={data} options={options} />
+      </div>
+    </DashboardCard>
+  );
+}
+
+export function PrescriberGrowthCard({ points }: { points: PrescriberMonthlyPoint[] }) {
+  return (
+    <DashboardCard>
+      <CardHeader title="Prescriber adoption and concentration" />
+      <div className="mt-1.5 overflow-x-auto">
+        <table className="w-full min-w-[840px] border-separate border-spacing-0 text-xs tabular-nums">
+          <thead>
+            <tr className="text-[10px] uppercase tracking-[0.03em] text-muted">
+              <th className="border-b border-border px-2 py-[7px] text-left">Month</th>
+              <th className="border-b border-border px-2 py-[7px] text-right">Active Lipfendra writers</th>
+              <th className="border-b border-border px-2 py-[7px] text-right">Rx from top 10% writers</th>
+              <th className="border-b border-border px-2 py-[7px] text-right">Rx from top 25% writers</th>
+              <th className="border-b border-border px-2 py-[7px] text-right">Avg. Rx per active writer</th>
+              <th className="border-b border-border px-2 py-[7px] text-right">New writers added</th>
+            </tr>
+          </thead>
+          <tbody>
+            {points.map((point) => (
+              <tr key={point.label}>
+                <td className="border-b border-[#f0efe9] px-2 py-2 text-left font-semibold">{point.label}</td>
+                <td className="border-b border-[#f0efe9] px-2 py-2 text-right">{point.activeWriters.toLocaleString()}</td>
+                <td className="border-b border-[#f0efe9] px-2 py-2 text-right">{(point.topTenPercentShare * 100).toFixed(0)}%</td>
+                <td className="border-b border-[#f0efe9] px-2 py-2 text-right">{(point.topTwentyFivePercentShare * 100).toFixed(0)}%</td>
+                <td className="border-b border-[#f0efe9] px-2 py-2 text-right">{point.prescriptionsPerWriter.toFixed(1)}</td>
+                <td className="border-b border-[#f0efe9] px-2 py-2 text-right">{point.newWritersAdded.toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </DashboardCard>
   );

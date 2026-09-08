@@ -10,6 +10,7 @@ import {
   PatientInflowCard,
   PersistencyCard,
   PrescriberCard,
+  PrescriberGrowthCard,
   ProductMixCard,
   TrendCard,
 } from "./MarketIndicatorCards";
@@ -126,13 +127,14 @@ export function MarketIndicatorsDashboard({ data }: { data: DashboardData }) {
           <div role="tabpanel" aria-label={`${data.meta.productName} launch tracking`} className="space-y-4">
             <PatientInflowCard points={data.inflow} productName={data.meta.productName} />
             <div className="grid gap-4 lg:grid-cols-2">
-              <PersistencyCard points={data.persistency} productName={data.meta.productName} />
+              <PersistencyCard points={data.persistency} />
               <ComplianceCard points={data.compliance} productName={data.meta.productName} />
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
               <NpsMarketShareCard points={data.npsShare} productName={data.meta.productName} />
               <PrescriberCard points={data.prescribers} />
             </div>
+            <PrescriberGrowthCard points={data.prescriberMonthly} />
           </div>
         )}
       </section>

@@ -22,6 +22,17 @@ export type ComparisonPoint = {
   actual: number;
 };
 
+export type PersistencyProductValue = {
+  product: string;
+  value: number;
+};
+
+export type PersistencyPoint = {
+  label: string;
+  forecast: number;
+  products: PersistencyProductValue[];
+};
+
 export type NpsPoint = ComparisonPoint & {
   forecastCount: number;
   actualCount: number;
@@ -42,6 +53,15 @@ export type PrescriberPoint = {
   specialty: string;
   writers: number;
   prescriptionsPerWriter: number;
+};
+
+export type PrescriberMonthlyPoint = {
+  label: string;
+  activeWriters: number;
+  topTenPercentShare: number;
+  topTwentyFivePercentShare: number;
+  prescriptionsPerWriter: number;
+  newWritersAdded: number;
 };
 
 export type TrendPoint = {
@@ -80,8 +100,9 @@ export type DashboardData = {
   advancedPool: TrendPoint[];
   activeHcp: TrendPoint[];
   inflow: InflowPoint[];
-  persistency: ComparisonPoint[];
+  persistency: PersistencyPoint[];
   compliance: ComparisonPoint[];
   prescribers: PrescriberPoint[];
+  prescriberMonthly: PrescriberMonthlyPoint[];
   assumptions: Assumption[];
 };

@@ -14,6 +14,8 @@ import type {
   MarketPoint,
   NpsPoint,
   PatientSegment,
+  PersistencyPoint,
+  PrescriberMonthlyPoint,
   PrescriberPoint,
   ProductMixPoint,
   SegmentGroup,
@@ -342,6 +344,66 @@ function readPrescribers(worksheet: ExcelJS.Worksheet): PrescriberPoint[] {
   return result;
 }
 
+function readMonthlyPrescribers(worksheet: ExcelJS.Worksheet): PrescriberMonthlyPoint[] {
+  const headerRow = findHeaderRowByNames(worksheet, [
+    "% Rx from top 10% writers",
+    "% Rx from top 25% writers",
+    "Avg. Rx per active writer",
+    "New writers added",
+  ]);
+  const activeWritersColumn = (() => {
+    for (let column = 1; column <= worksheet.columnCount; column += 1) {
+      const header = cellValue(worksheet, headerRow, column);
+      if (typeof header === "string" && /^Active .+ writers$/.test(header)) return column;
+    }
+
+    throw new Error(`Could not find the active-writers header in sheet "${worksheet.name}".`);
+  })();
+  const monthColumn = (() => {
+    for (let column = activeWritersColumn - 1; column >= 1; column -= 1) {
+      if (cellValue(worksheet, headerRow, column) === "Month") return column;
+    }
+
+    throw new Error(`Could not find the monthly prescriber dates in sheet "${worksheet.name}".`);
+  })();
+  const topTenPercentColumn = findHeaderColumn(worksheet, headerRow, "% Rx from top 10% writers");
+  const topTwentyFivePercentColumn = findHeaderColumn(worksheet, headerRow, "% Rx from top 25% writers");
+  const prescriptionsPerWriterColumn = findHeaderColumn(worksheet, headerRow, "Avg. Rx per active writer");
+  const newWritersAddedColumn = findHeaderColumn(worksheet, headerRow, "New writers added");
+  const result: PrescriberMonthlyPoint[] = [];
+
+  for (let row = headerRow + 1; row <= worksheet.rowCount; row += 1) {
+    const activeWriters = optionalNumber(cellValue(worksheet, row, activeWritersColumn));
+    if (activeWriters === null) break;
+
+    result.push({
+      label: excelDateLabel(
+        cellValue(worksheet, row, monthColumn),
+        `${worksheet.name}!${worksheet.getColumn(monthColumn).letter}${row}`,
+      ),
+      activeWriters,
+      topTenPercentShare: numberValue(
+        cellValue(worksheet, row, topTenPercentColumn),
+        `${worksheet.name}!${worksheet.getColumn(topTenPercentColumn).letter}${row}`,
+      ),
+      topTwentyFivePercentShare: numberValue(
+        cellValue(worksheet, row, topTwentyFivePercentColumn),
+        `${worksheet.name}!${worksheet.getColumn(topTwentyFivePercentColumn).letter}${row}`,
+      ),
+      prescriptionsPerWriter: numberValue(
+        cellValue(worksheet, row, prescriptionsPerWriterColumn),
+        `${worksheet.name}!${worksheet.getColumn(prescriptionsPerWriterColumn).letter}${row}`,
+      ),
+      newWritersAdded: numberValue(
+        cellValue(worksheet, row, newWritersAddedColumn),
+        `${worksheet.name}!${worksheet.getColumn(newWritersAddedColumn).letter}${row}`,
+      ),
+    });
+  }
+
+  return result;
+}
+
 function readCompliance(worksheet: ExcelJS.Worksheet): ComparisonPoint[] {
   const headerRow = findHeaderRow(worksheet, [[1, "Month"], [2, "Forecast"], [3, "Actuals"]]);
   const result: ComparisonPoint[] = [];
@@ -398,22 +460,40 @@ function readPoolAndHcp(worksheet: ExcelJS.Worksheet): { advancedPool: TrendPoin
   return { advancedPool, activeHcp };
 }
 
-function readPersistency(worksheet: ExcelJS.Worksheet): ComparisonPoint[] {
+function readPersistency(worksheet: ExcelJS.Worksheet): PersistencyPoint[] {
   const headerRow = findHeaderRow(worksheet, [
     [7, "Month"],
     [8, "New Forecast Blended Curve"],
-    [9, "Lipfendra persitency"],
   ]);
-  const persistency: ComparisonPoint[] = [];
+  const productColumns: Array<{ column: number; product: string }> = [];
+
+  for (let column = 9; column <= worksheet.columnCount; column += 1) {
+    const header = cellValue(worksheet, headerRow, column);
+    if (typeof header !== "string" || header.length === 0) break;
+    productColumns.push({ column, product: withDisplayProductName(header) });
+  }
+
+  if (productColumns.length === 0) {
+    throw new Error(`The persistency table in "${worksheet.name}" does not contain any product columns.`);
+  }
+
+  const persistency: PersistencyPoint[] = [];
 
   for (let row = headerRow + 1; row <= worksheet.rowCount; row += 1) {
-    const persistencyActual = optionalNumber(cellValue(worksheet, row, 9));
-    if (persistencyActual === null) break;
+    const products = productColumns.map(({ column, product }) => {
+      const value = optionalNumber(cellValue(worksheet, row, column));
+      if (value === null) return null;
+      return { product, value };
+    });
+    if (products.every((product) => product === null)) break;
+    if (products.some((product) => product === null)) {
+      throw new Error(`Persistency data is incomplete in ${worksheet.name} row ${row}.`);
+    }
 
     persistency.push({
       label: launchMonthLabel(cellValue(worksheet, row, 7), `${worksheet.name}!G${row}`),
       forecast: numberValue(cellValue(worksheet, row, 8), `${worksheet.name}!H${row}`),
-      actual: persistencyActual,
+      products: products as NonNullable<(typeof products)[number]>[],
     });
   }
 
@@ -525,6 +605,7 @@ async function readDashboardData(): Promise<DashboardData> {
     persistency,
     compliance: readCompliance(requireWorksheet(workbook, "Compliance")),
     prescribers: readPrescribers(requireWorksheet(workbook, "Prescriber Breadth Depth")),
+    prescriberMonthly: readMonthlyPrescribers(sourceWorksheet),
     assumptions: readAssumptions(requireWorksheet(workbook, "Assumption Monitor")),
   };
 
@@ -544,6 +625,7 @@ function validateDashboardData(data: DashboardData): void {
     ["persistency", data.persistency.length],
     ["compliance", data.compliance.length],
     ["prescriber breadth and depth", data.prescribers.length],
+    ["monthly prescriber data", data.prescriberMonthly.length],
     ["assumptions", data.assumptions.length],
   ] as const;
 
