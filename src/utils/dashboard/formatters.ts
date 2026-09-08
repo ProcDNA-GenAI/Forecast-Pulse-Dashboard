@@ -6,27 +6,33 @@ export function takeForBucket<T>(items: T[], bucket: TimeBucket): T[] {
   return items.slice(-Math.min(requestedLength, items.length));
 }
 
+export function formatDecimal(value: number, digits = 1): string {
+  return Number(value.toFixed(digits)).toLocaleString("en-US", {
+    maximumFractionDigits: digits,
+  });
+}
+
 export function formatMillions(value: number, digits = 1): string {
-  return `${(value / 1_000_000).toFixed(digits)}M`;
+  return `${formatDecimal(value / 1_000_000, digits)}M`;
 }
 
 export function formatPercent(value: number, digits = 1): string {
-  return `${(value * 100).toFixed(digits)}%`;
+  return `${formatDecimal(value * 100, digits)}%`;
 }
 
 export function formatPercentPoints(value: number, digits = 1): string {
   const prefix = value > 0 ? "+" : value < 0 ? "−" : "";
-  return `${prefix}${Math.abs(value * 100).toFixed(digits)}pp`;
+  return `${prefix}${formatDecimal(Math.abs(value * 100), digits)}pp`;
 }
 
 export function formatSignedPercent(value: number, digits = 1): string {
   const prefix = value > 0 ? "+" : value < 0 ? "−" : "";
-  return `${prefix}${Math.abs(value * 100).toFixed(digits)}%`;
+  return `${prefix}${formatDecimal(Math.abs(value * 100), digits)}%`;
 }
 
 export function formatAssumptionValue(assumption: Assumption, value: number, digits: number): string {
   if (assumption.unit === "months") {
-    return `${value.toFixed(digits)} mo`;
+    return `${formatDecimal(value, digits)} mo`;
   }
 
   return formatPercent(value, digits);
@@ -37,10 +43,10 @@ export function formatAssumptionVariance(assumption: Assumption): string {
   const absolute = Math.abs(assumption.variance);
 
   if (assumption.unit === "months") {
-    return `${prefix}${absolute.toFixed(1)} mo`;
+    return `${prefix}${formatDecimal(absolute, 1)} mo`;
   }
 
-  return `${prefix}${(absolute * 100).toFixed(1)} pt`;
+  return `${prefix}${formatDecimal(absolute * 100, 1)} pt`;
 }
 
 export function latestPoint(points: TrendPoint[]): TrendPoint {

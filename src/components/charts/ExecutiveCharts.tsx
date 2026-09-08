@@ -5,6 +5,7 @@ import type { ChartData, ChartOptions } from "chart.js";
 import { rgba, useChartColors } from "./chartSetup";
 import type { MarketPoint } from "@/utils/dashboard/types";
 import { ACTUALS_LABEL, FORECAST_LABEL } from "@/utils/dashboard/periods";
+import { formatDecimal } from "@/utils/dashboard/formatters";
 
 export function MarketTrajectoryChart({ points }: { points: MarketPoint[] }) {
   const colors = useChartColors();
@@ -43,7 +44,7 @@ export function MarketTrajectoryChart({ points }: { points: MarketPoint[] }) {
       legend: { display: false },
       tooltip: {
         callbacks: {
-          label: (context) => `${context.dataset.label}: ${Number(context.parsed.y).toFixed(1)}M`,
+          label: (context) => `${context.dataset.label}: ${formatDecimal(Number(context.parsed.y), 1)}M`,
         },
       },
     },
@@ -54,7 +55,7 @@ export function MarketTrajectoryChart({ points }: { points: MarketPoint[] }) {
       },
       y: {
         grid: { display: false },
-        title: { display: true, text: "Treated LLT market (M)", color: colors.muted, font: { size: 9, weight: 600 } },
+        title: { display: true, text: "Treated LLT Market (M)", color: colors.muted, font: { size: 9, weight: 600 } },
         ticks: { font: { size: 9 }, callback: (value) => `${value}M` },
       },
     },

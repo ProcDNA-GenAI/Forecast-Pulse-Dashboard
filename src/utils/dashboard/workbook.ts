@@ -335,8 +335,10 @@ function readPrescribers(worksheet: ExcelJS.Worksheet): PrescriberPoint[] {
   for (let row = headerRow + 1; row <= worksheet.rowCount; row += 1) {
     const specialty = cellValue(worksheet, row, 1);
     if (typeof specialty !== "string" || specialty.length === 0) break;
+    const displaySpecialty = withDisplayProductName(specialty);
+
     result.push({
-      specialty: withDisplayProductName(specialty),
+      specialty: displaySpecialty === "Other spec." ? "Other Spec." : displaySpecialty,
       writers: numberValue(cellValue(worksheet, row, 2), `${worksheet.name}!B${row}`),
       prescriptionsPerWriter: numberValue(cellValue(worksheet, row, 3), `${worksheet.name}!C${row}`),
     });

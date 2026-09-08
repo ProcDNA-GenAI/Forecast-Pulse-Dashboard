@@ -39,10 +39,28 @@ body {
 }
 
 .dashboard-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   background-color: #fff8f3;
+}
+
+.dashboard-hero::before {
+  position: absolute;
+  inset: -10px;
+  z-index: 0;
+  content: "";
   background-image: url("/KPIbg.png");
   background-position: center;
   background-size: cover;
+  /* filter: blur(4px); */
+  opacity: 0.6;
+  transform: scale(1.0);
+}
+
+.dashboard-hero > * {
+  position: relative;
+  z-index: 1;
 }
 
 button,

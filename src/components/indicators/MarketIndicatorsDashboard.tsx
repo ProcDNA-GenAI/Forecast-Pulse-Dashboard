@@ -16,6 +16,7 @@ import {
   TrendCard,
 } from "./MarketIndicatorCards";
 import type { DashboardData } from "@/utils/dashboard/types";
+import { formatDecimal } from "@/utils/dashboard/formatters";
 
 type IndicatorView = "market" | "launch";
 
@@ -65,15 +66,15 @@ export function MarketIndicatorsDashboard({ data }: { data: DashboardData }) {
   return (
     <>
       <PageIntro
-        title="Market Intelligence Detail"
-        description={`Explore market-level trends and ${data.meta.productName} launch performance in two focused views.`}
+        title="Key Market Indicators"
+        description="Explore market-level dynamics and Lipfendra launch performance through key patient, prescriber, and product indicators."
       />
 
       <div className="mb-4 rounded-[18px] border border-[#dfe5ee] bg-white p-1.5 shadow-[0_5px_20px_rgba(47,84,149,0.06)]">
         <div className="grid grid-cols-2 gap-1.5 rounded-[14px] bg-[#f0f3f7] p-1" role="tablist" aria-label="Market intelligence views">
           {[
-            { id: "market" as const, label: "Market Intelligence", description: "Market-level trends", icon: BarChart3 },
-            { id: "launch" as const, label: `${data.meta.productName} launch tracking`, description: "Product performance", icon: Rocket },
+            { id: "market" as const, label: "Market Intelligence", description: "Market-Level Trends", icon: BarChart3 },
+            { id: "launch" as const, label: `${data.meta.productName} Launch Tracking`, description: "Product Performance", icon: Rocket },
           ].map((view) => {
             const ViewIcon = view.icon;
 
@@ -110,18 +111,24 @@ export function MarketIndicatorsDashboard({ data }: { data: DashboardData }) {
       </div>
 
       <section className="mt-5 rounded-[18px] border border-border bg-white p-4 sm:p-5">
-        <h2 className="mb-4 text-xl font-bold text-primary">Key Market Indicators</h2>
+        <h2 className="mb-4 text-xl font-bold text-primary">
+          {activeView === "market" ? "Market Intelligence" : `${data.meta.productName} Launch Tracking`}
+        </h2>
 
         {activeView === "market" ? (
           <div role="tabpanel" aria-label="Market Intelligence" className="grid gap-4 lg:grid-cols-2">
             <ProductMixCard points={data.productMix} />
             <TrendCard
-              title="Active HCP universe"
+              title="Active HCP Universe"
               points={data.activeHcp}
               colorToken="teal"
               valueLabel={(value) => `${Math.round(value).toLocaleString()} HCPs`}
-              tickLabel={(value) => `${(value / 1000).toFixed(1)}k`}
+              tickLabel={(value) => `${formatDecimal(value / 1000, 1)}k`}
               yAxisLabel="Active HCPs"
+              yAxisMin={5000}
+              yAxisMax={10000}
+              yAxisStep={1000}
+              chartHeightClassName="h-[242px]"
             />
           </div>
         ) : (
@@ -139,6 +146,7 @@ export function MarketIndicatorsDashboard({ data }: { data: DashboardData }) {
               <PrescriberGrowthCard points={data.prescriberMonthly} />
               <EscalationTimeCard points={data.escalationTime} />
             </div>
+            <p className="pt-1 text-[10.5px] text-muted">Forian Data as of 2026; IQVIA, NPA, Xponent as of Dec &apos;26</p>
           </div>
         )}
       </section>

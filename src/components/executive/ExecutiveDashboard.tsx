@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useMemo, useState, type ReactNode } from "react";
+import { CircleHelp } from "lucide-react";
 import { MarketTrajectoryChart } from "@/components/charts/ExecutiveCharts";
 import { AiSummaryPanel } from "@/components/dashboard/AiSummaryPanel";
 import { CardHeader, DashboardCard } from "@/components/dashboard/DashboardCard";
@@ -10,6 +11,7 @@ import { PageIntro, SectionHeading } from "@/components/dashboard/PageIntro";
 import {
   formatAssumptionValue,
   formatAssumptionVariance,
+  formatDecimal,
   formatMillions,
   formatPercent,
   formatPercentPoints,
@@ -61,8 +63,25 @@ function MetricCard({
   tooltip?: ReactNode;
 }) {
   return (
-    <section className="group relative min-h-[118px] rounded-[16px] border border-white/70 bg-white/95 px-4 py-[15px] shadow-[0_5px_18px_rgba(47,84,149,0.055)] backdrop-blur-sm">
-      <div className="text-xs text-muted">{label}</div>
+    <section className="relative z-0 min-h-[118px] rounded-[16px] border border-white/70 bg-white/95 px-4 py-[15px] shadow-[0_5px_18px_rgba(47,84,149,0.055)] backdrop-blur-sm transition-[z-index] hover:z-50 focus-within:z-50">
+      <div className="flex items-center gap-1.5 text-xs text-muted">
+        <span>{label}</span>
+        {tooltip ? (
+          <span className="group/info relative inline-flex">
+            <button
+              type="button"
+              aria-label={`Show details for ${label}`}
+              className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full text-muted transition hover:bg-primary/10 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+            >
+              <CircleHelp aria-hidden="true" className="h-3.5 w-3.5" />
+            </button>
+            <div className="pointer-events-none absolute bottom-[calc(100%+10px)] right-0 z-[999] w-72 rounded-xl border border-[#dfe5ee] bg-white px-3 py-2 text-[11px] leading-[1.45] text-content opacity-0 shadow-[0_12px_28px_rgba(47,84,149,0.16)] transition-opacity duration-150 group-hover/info:opacity-100 group-focus-within/info:opacity-100">
+              {tooltip}
+              <span className="absolute right-[7px] top-full h-3 w-3 -translate-y-1/2 rotate-45 border-b border-r border-[#dfe5ee] bg-white" />
+            </div>
+          </span>
+        ) : null}
+      </div>
       <div className="my-1.5 flex flex-wrap items-baseline gap-x-1.5 text-[27px] font-bold leading-none text-orange">
         {value}
         {valueSuffix ? <span className="text-[12px] font-semibold text-muted">{valueSuffix}</span> : null}
@@ -73,12 +92,6 @@ function MetricCard({
             <Image src="/UpArrowGreen.svg" alt="" width={11} height={11} className="mt-px h-[11px] w-[11px] shrink-0" />
             <span className="min-w-0 whitespace-normal break-words">{detail}</span>
           </div>
-        </div>
-      ) : null}
-      {tooltip ? (
-        <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 z-20 w-72 -translate-x-1/2 rounded-xl border border-[#dfe5ee] bg-white px-3 py-2 text-[11px] leading-[1.45] text-content opacity-0 shadow-[0_12px_28px_rgba(47,84,149,0.16)] transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
-          {tooltip}
-          <span className="absolute left-1/2 top-full h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 border-b border-r border-[#dfe5ee] bg-white" />
         </div>
       ) : null}
     </section>
@@ -95,7 +108,7 @@ function MarketSection({ data }: { data: DashboardData }) {
       <SectionHeading emphasis="Is market evolving as expected?" />
       <DashboardCard>
         <CardHeader
-          title={`Treated LLT market: ${ACTUALS_LABEL} vs ${FORECAST_LABEL}`}
+          title={`Treated LLT Market: Projected ${ACTUALS_LABEL} vs ${FORECAST_LABEL}`}
         />
         <Legend>
           <LegendItem
@@ -143,6 +156,7 @@ function MarketSection({ data }: { data: DashboardData }) {
             </tbody>
           </table>
         </div>
+        <p className="mt-2 text-[10.5px] text-muted">Forian data updated as of Dec 2026; projected till 2043</p>
       </DashboardCard>
     </>
   );
@@ -170,10 +184,10 @@ function PatientSection({ data }: { data: DashboardData }) {
         <CardHeader
           title={
             <>
-              {FORECAST_LABEL} segments vs actual claims ({ACTUALS_PERIOD}){" "}
+              {FORECAST_LABEL} segments vs {ACTUALS_LABEL}{" "}
               <span className="whitespace-nowrap text-[11px] font-semibold text-accent">
                 <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-accent" />
-                biggest movers flagged
+                Major Movements
               </span>
             </>
           }
@@ -220,9 +234,7 @@ function PatientSection({ data }: { data: DashboardData }) {
             </tbody>
           </table>
         </div>
-        <p className="mt-2 text-[10.5px] text-muted">
-          Source: Hybrid approach _data requirement_vf.02 (Forian Data - Qral Outputs)
-        </p>
+        <p className="mt-2 text-[10.5px] text-muted">Forian data updated as of Dec 2026</p>
       </DashboardCard>
     </>
   );
@@ -247,7 +259,7 @@ function AssumptionSection({ data }: { data: DashboardData }) {
           <table className="mt-1.5 w-full min-w-[860px] border-separate border-spacing-0 text-[12.5px] tabular-nums">
             <thead>
               <tr className="text-[10px] uppercase tracking-[0.03em] text-muted">
-                <th className="border-b border-border px-[9px] py-[7px] text-left">Assumption</th>
+                <th className="border-b border-border px-[9px] py-[7px] text-left">Assumption (2026)</th>
                 <th className="border-b border-border px-[9px] py-[7px] text-right">{FORECAST_LABEL}</th>
                 <th className="border-b border-border px-[9px] py-[7px] text-right">Actuals (Dec &apos;26)</th>
                 <th className="border-b border-border px-[9px] py-[7px] text-right">Variance</th>
@@ -313,34 +325,27 @@ function ExecutiveSummaryPanel() {
       summary={
         <ul className="m-0 list-disc space-y-3 pl-5">
           <li>
-            <p className="m-0 font-semibold text-[#2C7358]">LDL-C market is tracking ahead of expectations</p>
+            <p className="m-0 text-[15px] font-semibold text-[#2C7358]">LDL-C market is tracking ahead of expectations</p>
             <p className="m-0 mt-1 text-content">
               Market growth is running at 2.1% CAGR vs. 1.6% forecast, while the advanced-LLT pool has increased ~8% over
               six months. <strong>The addressable opportunity may be expanding faster than anticipated.</strong>
             </p>
           </li>
           <li>
-            <p className="m-0 font-semibold text-[#2C7358]">Patients are escalating faster than expected</p>
+            <p className="m-0 text-[15px] font-semibold text-[#2C7358]">Patients are escalating faster than expected</p>
             <p className="m-0 mt-1 text-content">
               Time to advanced therapy is currently 7.3 months vs. 8.4 months forecast.{" "}
               <strong>Earlier escalation could increase the near-term treatment opportunity if access can support the increased demand.</strong>
             </p>
           </li>
           <li>
-            <p className="m-0 font-semibold text-[#9a6a12]">Patient mix is beginning to shift across key target segments</p>
+            <p className="m-0 text-[15px] font-semibold text-[#9a6a12]">Patient mix is beginning to shift across key target segments</p>
             <p className="m-0 mt-1 text-content">
               Three of 14 segments have moved meaningfully, led by <em>PP without T2D - Other Risk Factors</em>.{" "}
               <strong>
                 The composition of patients reaching treatment may be changing, potentially affecting the size and mix of Obi&apos;s
                 addressable population.
               </strong>
-            </p>
-          </li>
-          <li>
-            <p className="m-0 font-semibold text-[#b23b2c]">Access is not keeping pace with the opportunity</p>
-            <p className="m-0 mt-1 text-content">
-              Access is currently 39% vs. 41% forecast while several other market indicators are tracking ahead.{" "}
-              <strong>This assumption warrants review as part of the next launch outlook refresh.</strong>
             </p>
           </li>
         </ul>
@@ -361,7 +366,7 @@ export function ExecutiveDashboard({ data }: { data: DashboardData }) {
     <>
       <PageIntro
         title="Executive Summary"
-        description="A real-time view of how the LDL-C market and patient dynamics are evolving versus our launch assumptions."
+        description="A leadership view of how the LDL-C market and patient dynamics are evolving versus our launch assumptions."
       />
 
       <div className="mb-4">
@@ -371,7 +376,7 @@ export function ExecutiveDashboard({ data }: { data: DashboardData }) {
       <section className="dashboard-hero rounded-[18px] border border-[#f2e8e1] p-4 shadow-[0_4px_14px_rgba(47,84,149,0.025)]">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard
-            label="Treated LLT market"
+            label="Treated LLT Market (2026)"
             value={formatMillions(market2026.actual)}
             valueSuffix={`(${ACTUALS_PERIOD})`}
             detail={`${formatSignedPercent((market2026.actual - market2026.forecast) / market2026.forecast, 1)} vs ${formatMillions(market2026.forecast)} ${FORECAST_LABEL}`}
@@ -381,14 +386,14 @@ export function ExecutiveDashboard({ data }: { data: DashboardData }) {
             label="Market CAGR"
             value={formatPercent(actualCagr, 1)}
             valueSuffix="(2027-43)"
-            detail={`+${((actualCagr - forecastCagr) * 100).toFixed(1)} pt vs ${formatPercent(forecastCagr, 1)} ${FORECAST_LABEL}`}
+            detail={`+${formatDecimal((actualCagr - forecastCagr) * 100, 1)} pt vs ${formatPercent(forecastCagr, 1)} ${FORECAST_LABEL}`}
             detailClassName="text-success"
           />
           <MetricCard
-            label="Advanced-LLT pool · 6 mo"
-            value={`${latestPool.value.toFixed(2)}M`}
+            label="Advanced-LLT Pool (2026)"
+            value={`${formatDecimal(latestPool.value, 2)}M`}
             valueSuffix={`(${latestPool.label})`}
-            detail={`${formatSignedPercent(poolGrowth, 0)} vs ${data.advancedPool[0].value.toFixed(2)}M ${FORECAST_LABEL}`}
+            detail={`${formatSignedPercent(poolGrowth, 0)} vs ${formatDecimal(data.advancedPool[0].value, 2)}M ${FORECAST_LABEL}`}
             detailClassName="text-success"
           />
           <MetricCard

@@ -5,9 +5,9 @@ import { Bar, Chart, Doughnut, Line } from "react-chartjs-2";
 import type { ChartData, ChartOptions } from "chart.js";
 import { useDashboard } from "@/components/dashboard/DashboardProvider";
 import { CardHeader, DashboardCard } from "@/components/dashboard/DashboardCard";
-import { DataTag, Legend, LegendItem, MiniButton } from "@/components/dashboard/DashboardControls";
+import { Legend, LegendItem, MiniButton } from "@/components/dashboard/DashboardControls";
 import { rgba, useChartColors, type ChartColors } from "@/components/charts/chartSetup";
-import { takeForBucket } from "@/utils/dashboard/formatters";
+import { formatDecimal, takeForBucket } from "@/utils/dashboard/formatters";
 import type {
   ComparisonPoint,
   EscalationPoint,
@@ -46,7 +46,7 @@ export function ProductMixCard({ points }: { points: ProductMixPoint[] }) {
         label: product,
         data: visible.map((point) => {
           const share = point.shares.find((item) => item.product === product)?.share ?? 0;
-          return mode === "pct" ? share * 100 : Number((share * point.totalPatientsMillions).toFixed(3));
+          return mode === "pct" ? share * 100 : share * point.totalPatientsMillions;
         }),
         backgroundColor: rgba(colorFromToken(colors, colorToken), 0.92),
         borderWidth: 0,
@@ -63,8 +63,14 @@ export function ProductMixCard({ points }: { points: ProductMixPoint[] }) {
       tooltip: {
         callbacks: {
           label: (context) => {
-            const value = Number(context.parsed.y);
-            return `${context.dataset.label}: ${mode === "pct" ? `${value.toFixed(1)}%` : `${value.toFixed(2)}M`}`;
+            const point = visible[context.dataIndex];
+            const share = point?.shares.find((item) => item.product === context.dataset.label)?.share ?? 0;
+            const productPatients = share * (point?.totalPatientsMillions ?? 0);
+            const totalPatients = point?.totalPatientsMillions ?? 0;
+
+            return mode === "pct"
+              ? `${context.dataset.label}: ${formatDecimal(share * 100, 1)}% · ${formatDecimal(productPatients, 2)}M of ${formatDecimal(totalPatients, 2)}M total`
+              : `${context.dataset.label}: ${formatDecimal(productPatients, 2)}M · ${formatDecimal(share * 100, 1)}% of ${formatDecimal(totalPatients, 2)}M total`;
           },
         },
       },
@@ -81,13 +87,13 @@ export function ProductMixCard({ points }: { points: ProductMixPoint[] }) {
         grid: { display: false },
         title: {
           display: true,
-          text: mode === "pct" ? "Patient share (%)" : "Patients (M)",
+          text: mode === "pct" ? "Patient Share (%)" : "Patients (M)",
           color: colors.muted,
           font: { size: 9, weight: 600 },
         },
         ticks: {
           font: { size: 9 },
-          callback: (value) => (mode === "pct" ? `${value}%` : `${Number(value).toFixed(2)}M`),
+          callback: (value) => (mode === "pct" ? `${value}%` : `${formatDecimal(Number(value), 2)}M`),
         },
       },
     },
@@ -158,7 +164,7 @@ export function NpsMarketShareCard({ points, productName }: { points: NpsPoint[]
         callbacks: {
           label: (context) => {
             const value = Number(context.parsed.y);
-            return `${context.dataset.label}: ${mode === "share" ? `${value.toFixed(1)}% share` : `${Math.round(value).toLocaleString()} NPS`}`;
+            return `${context.dataset.label}: ${mode === "share" ? `${formatDecimal(value, 1)}% share` : `${Math.round(value).toLocaleString()} NPS`}`;
           },
         },
       },
@@ -179,7 +185,7 @@ export function NpsMarketShareCard({ points, productName }: { points: NpsPoint[]
   return (
     <DashboardCard>
       <CardHeader
-        title={`${productName} NPS ${mode === "share" ? "market share" : "counts"}`}
+        title={`${productName} NPS ${mode === "share" ? "Market Share" : "Counts"}`}
         action={
           <MiniButton onClick={() => setMode((current) => (current === "share" ? "count" : "share"))}>
             {mode === "share" ? "Show NPS counts" : "Show NPS share"}
@@ -204,9 +210,24 @@ type TrendCardProps = {
   valueLabel: (value: number) => string;
   tickLabel: (value: number) => string;
   yAxisLabel?: string;
+  yAxisMin?: number;
+  yAxisMax?: number;
+  yAxisStep?: number;
+  chartHeightClassName?: string;
 };
 
-export function TrendCard({ title, points, colorToken, valueLabel, tickLabel, yAxisLabel }: TrendCardProps) {
+export function TrendCard({
+  title,
+  points,
+  colorToken,
+  valueLabel,
+  tickLabel,
+  yAxisLabel,
+  yAxisMin,
+  yAxisMax,
+  yAxisStep,
+  chartHeightClassName = "h-[190px]",
+}: TrendCardProps) {
   const { bucket } = useDashboard();
   const colors = useChartColors();
   const visible = takeForBucket(points, bucket);
@@ -238,9 +259,11 @@ export function TrendCard({ title, points, colorToken, valueLabel, tickLabel, yA
     scales: {
       x: { grid: { display: false }, ticks: { font: { size: 9 } } },
       y: {
+        min: yAxisMin,
+        max: yAxisMax,
         grid: { display: false },
         title: yAxisLabel ? { display: true, text: yAxisLabel, color: colors.muted, font: { size: 9, weight: 600 } } : undefined,
-        ticks: { font: { size: 8 }, callback: (value) => tickLabel(Number(value)) },
+        ticks: { font: { size: 9 }, stepSize: yAxisStep, callback: (value) => tickLabel(Number(value)) },
       },
     },
   };
@@ -248,7 +271,7 @@ export function TrendCard({ title, points, colorToken, valueLabel, tickLabel, yA
   return (
     <DashboardCard>
       <CardHeader title={title} />
-      <div className="relative mt-2.5 h-[190px]">
+      <div className={`relative mt-2.5 ${chartHeightClassName}`}>
         <Line data={data} options={options} />
       </div>
     </DashboardCard>
@@ -260,7 +283,7 @@ export function PatientInflowCard({ points, productName }: { points: InflowPoint
   const colors = useChartColors();
   const visible = takeForBucket(points, bucket);
 
-  const data: ChartData<"line", number[], string> = {
+  const data: ChartData<"bar", number[], string> = {
     labels: visible.map((point) => point.label),
     datasets: [
       {
@@ -268,48 +291,42 @@ export function PatientInflowCard({ points, productName }: { points: InflowPoint
         data: visible.map((point) => point.newlyIntensified * 100),
         borderColor: colors.teal,
         backgroundColor: rgba(colors.teal, 0.85),
-        fill: true,
         stack: "source",
-        pointRadius: 0,
-        tension: 0.25,
+        borderRadius: 3,
       },
       {
         label: "Switch from advanced",
         data: visible.map((point) => point.switchFromAdvanced * 100),
         borderColor: colors.primary,
         backgroundColor: rgba(colors.primary, 0.85),
-        fill: true,
         stack: "source",
-        pointRadius: 0,
-        tension: 0.25,
+        borderRadius: 3,
       },
       {
         label: "Other",
         data: visible.map((point) => point.other * 100),
         borderColor: colors.grey,
         backgroundColor: rgba(colors.grey, 0.82),
-        fill: true,
         stack: "source",
-        pointRadius: 0,
-        tension: 0.25,
+        borderRadius: 3,
       },
     ],
   };
 
-  const options: ChartOptions<"line"> = {
+  const options: ChartOptions<"bar"> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${Number(context.parsed.y).toFixed(0)}%` } },
+      tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${formatDecimal(Number(context.parsed.y), 0)}%` } },
     },
     scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 9 } } },
+      x: { stacked: true, grid: { display: false }, ticks: { font: { size: 9 } } },
       y: {
         stacked: true,
         max: 100,
         grid: { display: false },
-        title: { display: true, text: "Patient share (%)", color: colors.muted, font: { size: 9, weight: 600 } },
+        title: { display: true, text: "Patient Share (%)", color: colors.muted, font: { size: 9, weight: 600 } },
         ticks: { font: { size: 9 }, callback: (value) => `${value}%` },
       },
     },
@@ -342,25 +359,25 @@ export function PatientInflowCard({ points, productName }: { points: InflowPoint
     cutout: "62%",
     plugins: {
       legend: { display: false },
-      tooltip: { callbacks: { label: (context) => `${context.label}: ${Number(context.parsed).toFixed(0)}%` } },
+      tooltip: { callbacks: { label: (context) => `${context.label}: ${formatDecimal(Number(context.parsed), 0)}%` } },
     },
   };
 
   return (
     <DashboardCard>
-      <CardHeader title={`${productName} patient inflow source`} />
+      <CardHeader title={`${productName} Patient Inflow Source`} />
       <Legend>
         <LegendItem color="var(--color-teal)" label="Newly intensified" />
         <LegendItem color="var(--color-primary)" label="Switch from advanced" />
         <LegendItem color="var(--color-chart-grey)" label="Other" />
       </Legend>
-      <div className="mt-2.5 grid gap-5 lg:grid-cols-[minmax(0,1.75fr)_minmax(220px,0.7fr)] lg:items-center">
+      <div className="mt-2.5 grid gap-5 lg:grid-cols-2 lg:items-center">
         <div className="relative h-[220px]">
-          <Line data={data} options={options} />
+          <Bar data={data} options={options} />
         </div>
         <div className="rounded-xl border border-border bg-page/60 px-3 py-3">
           <p className="mb-1 text-center text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">
-            Overall mix
+            Overall Mix
           </p>
           <div className="relative mx-auto h-[170px] max-w-[230px]">
             <Doughnut data={overallData} options={overallOptions} />
@@ -368,7 +385,7 @@ export function PatientInflowCard({ points, productName }: { points: InflowPoint
           <div className="mt-1 grid grid-cols-3 gap-1 text-center">
             {overallShares.map((value, index) => (
               <div key={overallData.labels?.[index] as string}>
-                <div className="text-sm font-bold text-primary">{(value * 100).toFixed(0)}%</div>
+                <div className="text-sm font-bold text-primary">{formatDecimal(value * 100, 0)}%</div>
                 <div className="text-[9px] leading-tight text-muted">{overallData.labels?.[index]}</div>
               </div>
             ))}
@@ -405,7 +422,7 @@ export function PersistencyCard({ points }: { points: PersistencyPoint[] }) {
         tension: 0.2,
       })),
       {
-        label: `Blended forecast curve (${FORECAST_REFRESH_PERIOD})`,
+        label: `Blended Forecast (${FORECAST_REFRESH_PERIOD})`,
         data: visible.map((point) => point.forecast * 100),
         borderColor: colors.grey,
         borderDash: [5, 4],
@@ -421,7 +438,7 @@ export function PersistencyCard({ points }: { points: PersistencyPoint[] }) {
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${Number(context.parsed.y).toFixed(0)}%` } },
+      tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${formatDecimal(Number(context.parsed.y), 0)}%` } },
     },
     scales: {
       x: { grid: { display: false }, ticks: { font: { size: 9 } } },
@@ -437,12 +454,12 @@ export function PersistencyCard({ points }: { points: PersistencyPoint[] }) {
 
   return (
     <DashboardCard>
-      <CardHeader title="Persistency" action={<DataTag>time n/a</DataTag>} />
+      <CardHeader title="Persistency" />
       <Legend>
         {products.map((product, index) => (
           <LegendItem key={product} color={productColors[index] ?? colors.primary} kind="line" label={product} />
         ))}
-        <LegendItem color="var(--color-chart-grey)" kind="line" dashed label={`Blended forecast curve (${FORECAST_REFRESH_PERIOD})`} />
+        <LegendItem color="var(--color-chart-grey)" kind="line" dashed label={`Blended Forecast (${FORECAST_REFRESH_PERIOD})`} />
       </Legend>
       <div className="relative mt-2.5 h-[200px]">
         <Line data={data} options={options} />
@@ -457,17 +474,17 @@ export function PrescriberGrowthCard({ points }: { points: PrescriberMonthlyPoin
 
   return (
     <DashboardCard>
-      <CardHeader title="Prescriber adoption and concentration" />
+      <CardHeader title="Prescriber Adoption and Concentration" />
       <div className="mt-1.5 overflow-x-auto">
         <table className="w-full min-w-[840px] border-separate border-spacing-0 text-xs tabular-nums">
           <thead>
             <tr className="text-[10px] uppercase tracking-[0.03em] text-muted">
               <th className="border-b border-border px-2 py-[7px] text-left">Month</th>
-              <th className="border-b border-border px-2 py-[7px] text-right">Active Lipfendra writers</th>
-              <th className="border-b border-border px-2 py-[7px] text-right">Rx from top 10% writers</th>
-              <th className="border-b border-border px-2 py-[7px] text-right">Rx from top 25% writers</th>
-              <th className="border-b border-border px-2 py-[7px] text-right">Avg. Rx per active writer</th>
-              <th className="border-b border-border px-2 py-[7px] text-right">New writers added</th>
+              <th className="border-b border-border px-2 py-[7px] text-right">Active Lipfendra Writers</th>
+              <th className="border-b border-border px-2 py-[7px] text-right">Rx From Top 10% Writers</th>
+              <th className="border-b border-border px-2 py-[7px] text-right">Rx From Top 25% Writers</th>
+              <th className="border-b border-border px-2 py-[7px] text-right">Avg. Rx Per Active Writer</th>
+              <th className="border-b border-border px-2 py-[7px] text-right">New Writers Added</th>
             </tr>
           </thead>
           <tbody>
@@ -475,9 +492,9 @@ export function PrescriberGrowthCard({ points }: { points: PrescriberMonthlyPoin
               <tr key={point.label}>
                 <td className="border-b border-[#f0efe9] px-2 py-2 text-left font-semibold">{point.label}</td>
                 <td className="border-b border-[#f0efe9] px-2 py-2 text-right">{point.activeWriters.toLocaleString()}</td>
-                <td className="border-b border-[#f0efe9] px-2 py-2 text-right">{(point.topTenPercentShare * 100).toFixed(0)}%</td>
-                <td className="border-b border-[#f0efe9] px-2 py-2 text-right">{(point.topTwentyFivePercentShare * 100).toFixed(0)}%</td>
-                <td className="border-b border-[#f0efe9] px-2 py-2 text-right">{point.prescriptionsPerWriter.toFixed(1)}</td>
+                <td className="border-b border-[#f0efe9] px-2 py-2 text-right">{formatDecimal(point.topTenPercentShare * 100, 0)}%</td>
+                <td className="border-b border-[#f0efe9] px-2 py-2 text-right">{formatDecimal(point.topTwentyFivePercentShare * 100, 0)}%</td>
+                <td className="border-b border-[#f0efe9] px-2 py-2 text-right">{formatDecimal(point.prescriptionsPerWriter, 1)}</td>
                 <td className="border-b border-[#f0efe9] px-2 py-2 text-right">{point.newWritersAdded.toLocaleString()}</td>
               </tr>
             ))}
@@ -499,7 +516,7 @@ export function EscalationTimeCard({ points }: { points: EscalationPoint[] }) {
     labels: visible.map((point) => point.label),
     datasets: [
       {
-        label: "Median time to escalation",
+        label: "Median Time to Escalation",
         data: visible.map((point) => point.months),
         borderColor: colors.orange,
         backgroundColor: rgba(colors.orange, 0.1),
@@ -516,7 +533,7 @@ export function EscalationTimeCard({ points }: { points: EscalationPoint[] }) {
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${Number(context.parsed.y).toFixed(1)} mo` } },
+      tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${formatDecimal(Number(context.parsed.y), 1)} mo` } },
     },
     scales: {
       x: { grid: { display: false }, ticks: { font: { size: 9 } } },
@@ -532,9 +549,9 @@ export function EscalationTimeCard({ points }: { points: EscalationPoint[] }) {
 
   return (
     <DashboardCard>
-      <CardHeader title="Median time to escalation" />
+      <CardHeader title="Median Time to Escalation" />
       <Legend>
-        <LegendItem color="var(--color-orange)" kind="line" label="Median time to escalation" />
+        <LegendItem color="var(--color-orange)" kind="line" label="Median Time to Escalation" />
       </Legend>
       <div className="relative mt-2.5 h-[235px]">
         <Line data={data} options={options} />
@@ -547,7 +564,7 @@ export function ComplianceCard({ points, productName }: { points: ComparisonPoin
   const { bucket } = useDashboard();
   const colors = useChartColors();
   const visible = takeForBucket(points, bucket);
-  const actualsLabel = `${productName} compliance`;
+  const actualsLabel = `${productName} Compliance`;
 
   const data: ChartData<"line", number[], string> = {
     labels: visible.map((point) => point.label),
@@ -579,7 +596,7 @@ export function ComplianceCard({ points, productName }: { points: ComparisonPoin
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${Number(context.parsed.y).toFixed(0)}%` } },
+      tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${formatDecimal(Number(context.parsed.y), 0)}%` } },
     },
     scales: {
       x: { grid: { display: false }, ticks: { font: { size: 9 } } },
@@ -625,7 +642,7 @@ export function PrescriberCard({ points }: { points: PrescriberPoint[] }) {
       },
       {
         type: "line",
-        label: "TRx / writer",
+        label: "TRx/Writer",
         data: points.map((item) => item.prescriptionsPerWriter),
         borderColor: colors.orange,
         backgroundColor: colors.orange,
@@ -654,7 +671,7 @@ export function PrescriberCard({ points }: { points: PrescriberPoint[] }) {
       y2: {
         position: "right",
         grid: { display: false },
-        title: { display: true, text: "TRx/writer", font: { size: 9 } },
+        title: { display: true, text: "TRx/Writer", font: { size: 9 } },
         ticks: { font: { size: 9 } },
       },
     },
@@ -701,14 +718,11 @@ export function PrescriberCard({ points }: { points: PrescriberPoint[] }) {
   return (
     <DashboardCard>
       <CardHeader
-        title="Prescriber breadth vs depth"
+        title="Prescriber Breadth vs Depth"
         action={
-          <div className="flex items-center gap-1.5">
-            <DataTag>time n/a</DataTag>
-            <MiniButton onClick={() => setSimple((current) => !current)}>
-              {simple ? "Combo view" : "Simple view"}
-            </MiniButton>
-          </div>
+          <MiniButton onClick={() => setSimple((current) => !current)}>
+            {simple ? "Combo View" : "Simple View"}
+          </MiniButton>
         }
       />
       <div className="relative mt-2.5 h-[200px]">
