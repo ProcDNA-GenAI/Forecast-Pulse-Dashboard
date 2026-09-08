@@ -8,8 +8,10 @@ import { downloadChartPng, downloadChartPptx, getChartPngDataUrl } from "@/utils
 import {
   BAR_LABEL_DISTANCE_PX,
   CHART_GRID_BOTTOM_PX,
+  CHART_GRID_LEFT_PX,
   CHART_GRID_TOP_PX,
   barLabelLayout,
+  categoryAxisLabelLayout,
   niceValueAxisMaximum,
   type ChartViewport,
 } from "@/utils/chat/chart-label-layout";
@@ -163,18 +165,21 @@ function normalizeChartOption(option: echarts.EChartsOption, viewport: ChartView
       : undefined;
 
   const singleGrid = (!Array.isArray(option.grid) && option.grid ? option.grid : {}) as {
+    left?: unknown;
     top?: unknown;
     bottom?: unknown;
   };
   const grid = Array.isArray(option.grid)
     ? option.grid.map((item) => ({
         ...item,
+        left: Math.max(typeof item.left === "number" ? item.left : 0, CHART_GRID_LEFT_PX),
         top: Math.max(typeof item.top === "number" ? item.top : 0, CHART_GRID_TOP_PX),
         bottom: Math.max(typeof item.bottom === "number" ? item.bottom : 0, CHART_GRID_BOTTOM_PX),
         containLabel: true,
       }))
     : {
         ...(option.grid || {}),
+        left: Math.max(typeof singleGrid.left === "number" ? singleGrid.left : 0, CHART_GRID_LEFT_PX),
         top: Math.max(typeof singleGrid.top === "number" ? singleGrid.top : 0, CHART_GRID_TOP_PX),
         bottom: Math.max(
           typeof singleGrid.bottom === "number" ? singleGrid.bottom : 0,
@@ -195,12 +200,23 @@ function normalizeChartOption(option: echarts.EChartsOption, viewport: ChartView
         ? axisItem.axisLabel
         : {}) as Record<string, unknown>;
       const existingNameGap = typeof axisItem.nameGap === "number" ? axisItem.nameGap : 0;
+      const axisData = Array.isArray(axisItem.data) ? axisItem.data : undefined;
+      const dataset = Array.isArray(option.dataset) ? option.dataset[0] : option.dataset;
+      const datasetSource = dataset && typeof dataset === "object" && "source" in dataset
+        ? dataset.source
+        : undefined;
+      const categoryCount = axisData?.length
+        || (Array.isArray(datasetSource) ? datasetSource.length : 0);
+      const categoryLabelPolicy = !isValueAxis && !isYAxis
+        ? categoryAxisLabelLayout(categoryCount, viewport.width)
+        : {};
 
       return {
         ...axisItem,
         splitLine: { ...splitLine, show: false },
         axisLabel: {
           ...axisLabel,
+          ...categoryLabelPolicy,
           margin: 9,
           ...(isValueAxis && axisLabel.formatter == null
             ? { formatter: (value: unknown) => formatLabelValue(value) }
@@ -210,7 +226,16 @@ function normalizeChartOption(option: echarts.EChartsOption, viewport: ChartView
           ? { max: ({ max }: { max: number }) => niceValueAxisMaximum(max) }
           : {}),
         ...(isYAxis && axisItem.name
-          ? { nameLocation: "middle", nameGap: Math.max(existingNameGap, 72) }
+          ? {
+              nameLocation: "middle",
+              nameGap: Math.min(Math.max(existingNameGap, 48), 58),
+              nameTextStyle: {
+                ...((axisItem.nameTextStyle && typeof axisItem.nameTextStyle === "object"
+                  ? axisItem.nameTextStyle
+                  : {}) as Record<string, unknown>),
+                fontSize: 10,
+              },
+            }
           : {}),
       };
     };

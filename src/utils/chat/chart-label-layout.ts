@@ -2,6 +2,7 @@ import type { LabelLayoutOptionCallback, LabelLayoutOptionCallbackParams } from 
 
 export const BAR_LABEL_DISTANCE_PX = 10;
 export const BAR_LABEL_COLLISION_GAP_PX = 8;
+export const CHART_GRID_LEFT_PX = 64;
 export const CHART_GRID_TOP_PX = 82;
 export const CHART_GRID_BOTTOM_PX = 66;
 
@@ -9,6 +10,34 @@ export type ChartViewport = {
   width: number;
   height: number;
 };
+
+export type CategoryAxisLabelLayout = {
+  hideOverlap: boolean;
+  interval?: number;
+  fontSize?: number;
+  lineHeight?: number;
+  overflow?: "break";
+  width?: number;
+};
+
+/** Show every label for compact category sets and wrap it within its available band. */
+export function categoryAxisLabelLayout(
+  categoryCount: number,
+  viewportWidth: number,
+): CategoryAxisLabelLayout {
+  if (!Number.isFinite(categoryCount) || categoryCount <= 0 || categoryCount > 8) {
+    return { hideOverlap: true };
+  }
+  const availablePlotWidth = Math.max(160, viewportWidth - CHART_GRID_LEFT_PX - 24);
+  return {
+    hideOverlap: false,
+    interval: 0,
+    fontSize: 9,
+    lineHeight: 11,
+    overflow: "break",
+    width: Math.max(48, Math.floor(availablePlotWidth / categoryCount) - 10),
+  };
+}
 
 type BarLabelLayoutInput = {
   params: LabelLayoutOptionCallbackParams;

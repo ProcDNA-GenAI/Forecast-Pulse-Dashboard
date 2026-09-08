@@ -6,8 +6,10 @@ import {
   BAR_LABEL_COLLISION_GAP_PX,
   BAR_LABEL_DISTANCE_PX,
   CHART_GRID_BOTTOM_PX,
+  CHART_GRID_LEFT_PX,
   CHART_GRID_TOP_PX,
   barLabelLayout,
+  categoryAxisLabelLayout,
   niceValueAxisMaximum,
 } from "./chart-label-layout.ts";
 
@@ -81,6 +83,57 @@ test("positive value axes use clean tick ceilings", () => {
   assert.equal(niceValueAxisMaximum(54_500), 60_000);
   assert.equal(niceValueAxisMaximum(1), 1);
   assert.equal(niceValueAxisMaximum(0), 0);
+});
+
+test("compact category axes show every label within its available band", () => {
+  const layout = categoryAxisLabelLayout(4, 510);
+  assert.equal(layout.interval, 0);
+  assert.equal(layout.hideOverlap, false);
+  assert.ok(Number(layout.width) <= (510 - CHART_GRID_LEFT_PX - 24) / 4);
+  assert.deepEqual(categoryAxisLabelLayout(12, 510), { hideOverlap: true });
+});
+
+test("competitor chart keeps all categories and its Y-axis title inside the canvas", () => {
+  const viewport = { width: 510, height: 290 };
+  const categories = ["Ezetimibe", "Bempedoic Acid", "Repatha", "Leqvio"];
+  const chart = echarts.init(null, undefined, { renderer: "svg", ssr: true, ...viewport });
+  chart.setOption({
+    animation: false,
+    grid: {
+      left: CHART_GRID_LEFT_PX,
+      right: 18,
+      top: 40,
+      bottom: CHART_GRID_BOTTOM_PX,
+      containLabel: true,
+    },
+    xAxis: {
+      type: "category",
+      name: "Competitor",
+      data: categories,
+      axisLabel: categoryAxisLabelLayout(categories.length, viewport.width),
+    },
+    yAxis: {
+      type: "value",
+      name: "Competitor Share Change (percentage points)",
+      nameLocation: "middle",
+      nameGap: 58,
+      nameTextStyle: { fontSize: 10 },
+    },
+    series: [{ type: "bar", data: [-3, -1, -1, 0] }],
+  });
+  const svg = chart.renderToSVGString();
+  categories.forEach((category) => assert.ok(svg.includes(category)));
+
+  const axisTitle = chart.getZr().storage.getDisplayList().find((element) => {
+    const text = (element as unknown as { style?: { text?: unknown } }).style?.text;
+    return text === "Competitor Share Change (percentage points)";
+  });
+  assert.ok(axisTitle);
+  const titleRect = axisTitle.getBoundingRect().clone();
+  const transform = axisTitle.getComputedTransform();
+  if (transform) titleRect.applyTransform(transform);
+  assert.ok(titleRect.x >= 0 && titleRect.x + titleRect.width <= viewport.width);
+  chart.dispose();
 });
 
 test("ECharts SVG rendering retains every non-zero label for all requested datasets", () => {
