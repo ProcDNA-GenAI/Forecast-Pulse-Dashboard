@@ -2,8 +2,17 @@
 
 import { BarChart3, ChevronDown, Download, Presentation } from "lucide-react";
 import * as echarts from "echarts";
+import type { LabelLayoutOptionCallbackParams } from "echarts";
 import { useEffect, useId, useMemo, useRef, useState, type RefObject } from "react";
 import { downloadChartPng, downloadChartPptx, getChartPngDataUrl } from "@/utils/chat/chart-downloads";
+import {
+  BAR_LABEL_DISTANCE_PX,
+  CHART_GRID_BOTTOM_PX,
+  CHART_GRID_TOP_PX,
+  barLabelLayout,
+  paddedValueAxisMaximum,
+  type ChartViewport,
+} from "@/utils/chat/chart-label-layout";
 import type { ChartGroup, ChartPayload } from "@/utils/chat/types";
 
 type ChartLabelParams = {
@@ -65,12 +74,11 @@ function encodedValue(params: ChartLabelParams): unknown {
   return Object.values(record).find((candidate) => typeof candidate === "number") ?? "";
 }
 
-function chartDataLabel(params: ChartLabelParams, useCategoryName = false, metricLabel = "") {
+function chartDataLabel(params: ChartLabelParams, useCategoryName = false) {
   const value = formatLabelValue(encodedValue(params));
   const rawName = useCategoryName ? params.name : params.seriesName;
   const name = rawName ? useCategoryName ? String(rawName) : humanizeLabel(String(rawName)) : "";
-  const metric = metricLabel ? humanizeLabel(metricLabel) : "";
-  const valueLine = metric && metric !== name ? `${metric}, ${value}` : value;
+  const valueLine = `Value: ${value}`;
   return name && valueLine ? `${name}\n${valueLine}` : valueLine || name;
 }
 
@@ -84,7 +92,7 @@ function isHorizontalBar(option: echarts.EChartsOption) {
 function normalizeSeriesLabels(
   series: echarts.EChartsOption["series"],
   horizontalBar: boolean,
-  valueAxisLabel: string,
+  viewport: ChartViewport,
 ) {
   if (!series) return series;
   const seriesCount = Array.isArray(series) ? series.length : 1;
@@ -112,18 +120,21 @@ function normalizeSeriesLabels(
         ...existingLabel,
         show: true,
         position,
-        distance: isStacked ? 0 : 6,
+        distance: isStacked ? 0 : BAR_LABEL_DISTANCE_PX,
         color: isStacked || type === "treemap" ? "#ffffff" : "#4b5563",
         fontSize: 9,
         lineHeight: 12,
+        padding: type === "bar" && !isStacked ? [4, 4] : existingLabel.padding,
         formatter: (params: ChartLabelParams) => isStacked
           ? formatLabelValue(encodedValue(params))
-          : chartDataLabel(params, useCategoryName, valueAxisLabel),
+          : chartDataLabel(params, useCategoryName),
       },
-      labelLayout: {
-        ...(seriesItem.labelLayout && typeof seriesItem.labelLayout === "object" ? seriesItem.labelLayout : {}),
-        hideOverlap: true,
-      },
+      labelLayout: type === "bar" && !isStacked
+        ? (params: LabelLayoutOptionCallbackParams) => barLabelLayout({ params, horizontal: horizontalBar, viewport })
+        : {
+            ...(seriesItem.labelLayout && typeof seriesItem.labelLayout === "object" ? seriesItem.labelLayout : {}),
+            hideOverlap: true,
+          },
     };
   };
 
@@ -159,7 +170,7 @@ function fallbackOption(chart: ChartPayload): echarts.EChartsOption {
   };
 }
 
-function normalizeChartOption(option: echarts.EChartsOption): echarts.EChartsOption {
+function normalizeChartOption(option: echarts.EChartsOption, viewport: ChartViewport): echarts.EChartsOption {
   const title = Array.isArray(option.title)
     ? option.title.map((item) => ({ ...item, show: false }))
     : option.title
@@ -172,20 +183,28 @@ function normalizeChartOption(option: echarts.EChartsOption): echarts.EChartsOpt
       ? { ...option.legend, top: 8, bottom: undefined }
       : undefined;
 
-  const singleGrid = (!Array.isArray(option.grid) && option.grid ? option.grid : {}) as { top?: unknown };
+  const singleGrid = (!Array.isArray(option.grid) && option.grid ? option.grid : {}) as {
+    top?: unknown;
+    bottom?: unknown;
+  };
   const grid = Array.isArray(option.grid)
     ? option.grid.map((item) => ({
         ...item,
-        top: Math.max(typeof item.top === "number" ? item.top : 0, 72),
+        top: Math.max(typeof item.top === "number" ? item.top : 0, CHART_GRID_TOP_PX),
+        bottom: Math.max(typeof item.bottom === "number" ? item.bottom : 0, CHART_GRID_BOTTOM_PX),
         containLabel: true,
       }))
     : {
         ...(option.grid || {}),
-        top: Math.max(typeof singleGrid.top === "number" ? singleGrid.top : 0, 72),
+        top: Math.max(typeof singleGrid.top === "number" ? singleGrid.top : 0, CHART_GRID_TOP_PX),
+        bottom: Math.max(
+          typeof singleGrid.bottom === "number" ? singleGrid.bottom : 0,
+          CHART_GRID_BOTTOM_PX,
+        ),
         containLabel: true,
       };
 
-  const normalizeAxis = (axis: unknown, isYAxis: boolean): unknown => {
+  const normalizeAxis = (axis: unknown, isYAxis: boolean, isValueAxis: boolean): unknown => {
     if (!axis) return axis;
 
     const normalizeItem = (item: unknown) => {
@@ -202,6 +221,9 @@ function normalizeChartOption(option: echarts.EChartsOption): echarts.EChartsOpt
         ...axisItem,
         splitLine: { ...splitLine, show: false },
         axisLabel: { ...axisLabel, margin: 9 },
+        ...(isValueAxis && axisItem.max == null
+          ? { max: ({ max }: { max: number }) => paddedValueAxisMaximum(max) }
+          : {}),
         ...(isYAxis && axisItem.name
           ? { nameLocation: "middle", nameGap: Math.max(existingNameGap, 72) }
           : {}),
@@ -211,19 +233,16 @@ function normalizeChartOption(option: echarts.EChartsOption): echarts.EChartsOpt
     return Array.isArray(axis) ? axis.map(normalizeItem) : normalizeItem(axis);
   };
 
-  const firstAxis = (axis: unknown) => Array.isArray(axis) ? axis[0] : axis;
   const horizontalBar = isHorizontalBar(option);
-  const valueAxis = firstAxis(horizontalBar ? option.xAxis : option.yAxis) as { name?: unknown } | undefined;
-  const valueAxisLabel = typeof valueAxis?.name === "string" ? valueAxis.name : "";
 
   return {
     ...option,
     title,
     legend,
     grid,
-    series: normalizeSeriesLabels(option.series, horizontalBar, valueAxisLabel),
-    xAxis: normalizeAxis(option.xAxis, false) as echarts.EChartsOption["xAxis"],
-    yAxis: normalizeAxis(option.yAxis, true) as echarts.EChartsOption["yAxis"],
+    series: normalizeSeriesLabels(option.series, horizontalBar, viewport),
+    xAxis: normalizeAxis(option.xAxis, false, horizontalBar) as echarts.EChartsOption["xAxis"],
+    yAxis: normalizeAxis(option.yAxis, true, !horizontalBar) as echarts.EChartsOption["yAxis"],
   };
 }
 
@@ -231,7 +250,14 @@ function ChartCanvas({ chart, containerRef }: { chart: ChartPayload; containerRe
   useEffect(() => {
     if (!containerRef.current) return;
     const instance = echarts.init(containerRef.current);
-    const option = normalizeChartOption((chart.echartsOption || fallbackOption(chart)) as echarts.EChartsOption);
+    const viewport = {
+      width: containerRef.current.clientWidth,
+      height: containerRef.current.clientHeight,
+    };
+    const option = normalizeChartOption(
+      (chart.echartsOption || fallbackOption(chart)) as echarts.EChartsOption,
+      viewport,
+    );
     instance.setOption({
       ...option,
       animationDuration: 550,
@@ -242,7 +268,13 @@ function ChartCanvas({ chart, containerRef }: { chart: ChartPayload; containerRe
       },
     });
 
-    const observer = new ResizeObserver(() => instance.resize());
+    const observer = new ResizeObserver(() => {
+      if (containerRef.current) {
+        viewport.width = containerRef.current.clientWidth;
+        viewport.height = containerRef.current.clientHeight;
+      }
+      instance.resize();
+    });
     observer.observe(containerRef.current);
     return () => {
       observer.disconnect();

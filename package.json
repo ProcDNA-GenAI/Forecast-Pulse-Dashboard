@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test:chart-labels": "node --experimental-strip-types src/utils/chat/chart-label-layout.test.ts"
   },
   "dependencies": {
     "chart.js": "^4.4.1",
