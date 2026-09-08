@@ -6,6 +6,7 @@ import { AiSummaryPanel } from "@/components/dashboard/AiSummaryPanel";
 import { PageIntro } from "@/components/dashboard/PageIntro";
 import {
   ComplianceCard,
+  EscalationTimeCard,
   NpsMarketShareCard,
   PatientInflowCard,
   PersistencyCard,
@@ -134,7 +135,10 @@ export function MarketIndicatorsDashboard({ data }: { data: DashboardData }) {
               <NpsMarketShareCard points={data.npsShare} productName={data.meta.productName} />
               <PrescriberCard points={data.prescribers} />
             </div>
-            <PrescriberGrowthCard points={data.prescriberMonthly} />
+            <div className="grid gap-4 xl:grid-cols-2">
+              <PrescriberGrowthCard points={data.prescriberMonthly} />
+              <EscalationTimeCard points={data.escalationTime} />
+            </div>
           </div>
         )}
       </section>

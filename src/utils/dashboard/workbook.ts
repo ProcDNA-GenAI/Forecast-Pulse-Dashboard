@@ -10,6 +10,7 @@ import type {
   AssumptionUnit,
   ComparisonPoint,
   DashboardData,
+  EscalationPoint,
   InflowPoint,
   MarketPoint,
   NpsPoint,
@@ -404,6 +405,43 @@ function readMonthlyPrescribers(worksheet: ExcelJS.Worksheet): PrescriberMonthly
   return result;
 }
 
+function readEscalationTime(worksheet: ExcelJS.Worksheet): EscalationPoint[] {
+  const headerRow = findHeaderRowByNames(worksheet, ["Month", "Median time to escalation"]);
+  let escalationColumn: number | null = null;
+
+  for (let column = 2; column <= worksheet.columnCount; column += 1) {
+    if (
+      cellValue(worksheet, headerRow, column) === "Median time to escalation" &&
+      cellValue(worksheet, headerRow, column - 1) === "Month"
+    ) {
+      escalationColumn = column;
+      break;
+    }
+  }
+
+  if (escalationColumn === null) {
+    throw new Error(`Could not find the paired monthly escalation-time columns in sheet "${worksheet.name}".`);
+  }
+
+  const monthColumn = escalationColumn - 1;
+  const result: EscalationPoint[] = [];
+
+  for (let row = headerRow + 1; row <= worksheet.rowCount; row += 1) {
+    const rawMonths = cellValue(worksheet, row, escalationColumn);
+    if (rawMonths === null) break;
+
+    result.push({
+      label: excelDateLabel(
+        cellValue(worksheet, row, monthColumn),
+        `${worksheet.name}!${worksheet.getColumn(monthColumn).letter}${row}`,
+      ),
+      months: parseNumberFromLabel(rawMonths, `${worksheet.name}!${worksheet.getColumn(escalationColumn).letter}${row}`),
+    });
+  }
+
+  return result;
+}
+
 function readCompliance(worksheet: ExcelJS.Worksheet): ComparisonPoint[] {
   const headerRow = findHeaderRow(worksheet, [[1, "Month"], [2, "Forecast"], [3, "Actuals"]]);
   const result: ComparisonPoint[] = [];
@@ -606,6 +644,7 @@ async function readDashboardData(): Promise<DashboardData> {
     compliance: readCompliance(requireWorksheet(workbook, "Compliance")),
     prescribers: readPrescribers(requireWorksheet(workbook, "Prescriber Breadth Depth")),
     prescriberMonthly: readMonthlyPrescribers(sourceWorksheet),
+    escalationTime: readEscalationTime(sourceWorksheet),
     assumptions: readAssumptions(requireWorksheet(workbook, "Assumption Monitor")),
   };
 
@@ -626,6 +665,7 @@ function validateDashboardData(data: DashboardData): void {
     ["compliance", data.compliance.length],
     ["prescriber breadth and depth", data.prescribers.length],
     ["monthly prescriber data", data.prescriberMonthly.length],
+    ["escalation time", data.escalationTime.length],
     ["assumptions", data.assumptions.length],
   ] as const;
 

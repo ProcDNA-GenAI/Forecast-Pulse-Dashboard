@@ -64,6 +64,11 @@ export type PrescriberMonthlyPoint = {
   newWritersAdded: number;
 };
 
+export type EscalationPoint = {
+  label: string;
+  months: number;
+};
+
 export type TrendPoint = {
   label: string;
   value: number;
@@ -104,5 +109,6 @@ export type DashboardData = {
   compliance: ComparisonPoint[];
   prescribers: PrescriberPoint[];
   prescriberMonthly: PrescriberMonthlyPoint[];
+  escalationTime: EscalationPoint[];
   assumptions: Assumption[];
 };

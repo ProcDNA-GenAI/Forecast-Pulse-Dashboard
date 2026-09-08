@@ -10,6 +10,7 @@ import { rgba, useChartColors, type ChartColors } from "@/components/charts/char
 import { takeForBucket } from "@/utils/dashboard/formatters";
 import type {
   ComparisonPoint,
+  EscalationPoint,
   InflowPoint,
   NpsPoint,
   PersistencyPoint,
@@ -451,6 +452,9 @@ export function PersistencyCard({ points }: { points: PersistencyPoint[] }) {
 }
 
 export function PrescriberGrowthCard({ points }: { points: PrescriberMonthlyPoint[] }) {
+  const { bucket } = useDashboard();
+  const visible = takeForBucket(points, bucket);
+
   return (
     <DashboardCard>
       <CardHeader title="Prescriber adoption and concentration" />
@@ -467,7 +471,7 @@ export function PrescriberGrowthCard({ points }: { points: PrescriberMonthlyPoin
             </tr>
           </thead>
           <tbody>
-            {points.map((point) => (
+            {visible.map((point) => (
               <tr key={point.label}>
                 <td className="border-b border-[#f0efe9] px-2 py-2 text-left font-semibold">{point.label}</td>
                 <td className="border-b border-[#f0efe9] px-2 py-2 text-right">{point.activeWriters.toLocaleString()}</td>
@@ -479,6 +483,61 @@ export function PrescriberGrowthCard({ points }: { points: PrescriberMonthlyPoin
             ))}
           </tbody>
         </table>
+      </div>
+    </DashboardCard>
+  );
+}
+
+export function EscalationTimeCard({ points }: { points: EscalationPoint[] }) {
+  const { bucket } = useDashboard();
+  const colors = useChartColors();
+  const visible = takeForBucket(points, bucket);
+  const minMonths = Math.floor((Math.min(...visible.map((point) => point.months)) - 0.3) * 2) / 2;
+  const maxMonths = Math.ceil((Math.max(...visible.map((point) => point.months)) + 0.3) * 2) / 2;
+
+  const data: ChartData<"line", number[], string> = {
+    labels: visible.map((point) => point.label),
+    datasets: [
+      {
+        label: "Median time to escalation",
+        data: visible.map((point) => point.months),
+        borderColor: colors.orange,
+        backgroundColor: rgba(colors.orange, 0.1),
+        fill: true,
+        borderWidth: 2.6,
+        pointRadius: 3,
+        tension: 0.25,
+      },
+    ],
+  };
+
+  const options: ChartOptions<"line"> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${Number(context.parsed.y).toFixed(1)} mo` } },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 9 } } },
+      y: {
+        min: minMonths,
+        max: maxMonths,
+        grid: { display: false },
+        title: { display: true, text: "Months", color: colors.muted, font: { size: 9, weight: 600 } },
+        ticks: { font: { size: 9 }, callback: (value) => `${value} mo` },
+      },
+    },
+  };
+
+  return (
+    <DashboardCard>
+      <CardHeader title="Median time to escalation" />
+      <Legend>
+        <LegendItem color="var(--color-orange)" kind="line" label="Median time to escalation" />
+      </Legend>
+      <div className="relative mt-2.5 h-[235px]">
+        <Line data={data} options={options} />
       </div>
     </DashboardCard>
   );
