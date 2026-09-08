@@ -4,7 +4,6 @@ export const BAR_LABEL_DISTANCE_PX = 10;
 export const BAR_LABEL_COLLISION_GAP_PX = 8;
 export const CHART_GRID_TOP_PX = 82;
 export const CHART_GRID_BOTTOM_PX = 66;
-export const VALUE_AXIS_HEADROOM_RATIO = 1.2;
 
 export type ChartViewport = {
   width: number;
@@ -17,10 +16,23 @@ type BarLabelLayoutInput = {
   viewport: ChartViewport;
 };
 
-/** Add enough value-axis space for a two-line label above the tallest positive bar. */
-export function paddedValueAxisMaximum(maxValue: number): number {
+/** Round the value-axis ceiling to a clean tick without exposing floating-point headroom values. */
+export function niceValueAxisMaximum(maxValue: number): number {
   if (!Number.isFinite(maxValue) || maxValue <= 0) return maxValue;
-  return maxValue * VALUE_AXIS_HEADROOM_RATIO;
+  const roughStep = maxValue / 5;
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep));
+  const normalizedStep = roughStep / magnitude;
+  const niceStep = normalizedStep <= 1
+    ? 1
+    : normalizedStep <= 2
+      ? 2
+      : normalizedStep <= 2.5
+        ? 2.5
+        : normalizedStep <= 5
+          ? 5
+          : 10;
+  const step = niceStep * magnitude;
+  return Number((Math.ceil(maxValue / step) * step).toPrecision(12));
 }
 
 /**

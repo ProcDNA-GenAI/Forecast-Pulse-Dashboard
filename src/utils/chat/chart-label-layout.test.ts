@@ -7,9 +7,8 @@ import {
   BAR_LABEL_DISTANCE_PX,
   CHART_GRID_BOTTOM_PX,
   CHART_GRID_TOP_PX,
-  VALUE_AXIS_HEADROOM_RATIO,
   barLabelLayout,
-  paddedValueAxisMaximum,
+  niceValueAxisMaximum,
 } from "./chart-label-layout.ts";
 
 function params(value: number, maxValue: number, seriesIndex: number): LabelLayoutOptionCallbackParams {
@@ -76,10 +75,12 @@ test("tall bars stay centered at their natural outside position", () => {
   assert.equal(layout.dy, 0);
 });
 
-test("positive value axes receive twenty percent label headroom", () => {
-  assert.equal(paddedValueAxisMaximum(54_500), 54_500 * VALUE_AXIS_HEADROOM_RATIO);
-  assert.equal(paddedValueAxisMaximum(1), 1.2);
-  assert.equal(paddedValueAxisMaximum(0), 0);
+test("positive value axes use clean tick ceilings", () => {
+  assert.equal(niceValueAxisMaximum(19.24), 20);
+  assert.equal(niceValueAxisMaximum(44.44), 50);
+  assert.equal(niceValueAxisMaximum(54_500), 60_000);
+  assert.equal(niceValueAxisMaximum(1), 1);
+  assert.equal(niceValueAxisMaximum(0), 0);
 });
 
 test("ECharts SVG rendering retains every non-zero label for all requested datasets", () => {
@@ -97,7 +98,7 @@ test("ECharts SVG rendering retains every non-zero label for all requested datas
         containLabel: true,
       },
       xAxis: { type: "category", data: ["Share gain is the larger direct contributor"] },
-      yAxis: { type: "value", max: ({ max }: { max: number }) => paddedValueAxisMaximum(max) },
+      yAxis: { type: "value", max: ({ max }: { max: number }) => niceValueAxisMaximum(max) },
       series: values.map((value, seriesIndex) => ({
         name: `Contribution ${seriesIndex + 1}`,
         type: "bar",

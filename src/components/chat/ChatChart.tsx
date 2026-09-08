@@ -10,7 +10,7 @@ import {
   CHART_GRID_BOTTOM_PX,
   CHART_GRID_TOP_PX,
   barLabelLayout,
-  paddedValueAxisMaximum,
+  niceValueAxisMaximum,
   type ChartViewport,
 } from "@/utils/chat/chart-label-layout";
 import type { ChartGroup, ChartPayload } from "@/utils/chat/types";
@@ -199,9 +199,15 @@ function normalizeChartOption(option: echarts.EChartsOption, viewport: ChartView
       return {
         ...axisItem,
         splitLine: { ...splitLine, show: false },
-        axisLabel: { ...axisLabel, margin: 9 },
+        axisLabel: {
+          ...axisLabel,
+          margin: 9,
+          ...(isValueAxis && axisLabel.formatter == null
+            ? { formatter: (value: unknown) => formatLabelValue(value) }
+            : {}),
+        },
         ...(isValueAxis && axisItem.max == null
-          ? { max: ({ max }: { max: number }) => paddedValueAxisMaximum(max) }
+          ? { max: ({ max }: { max: number }) => niceValueAxisMaximum(max) }
           : {}),
         ...(isYAxis && axisItem.name
           ? { nameLocation: "middle", nameGap: Math.max(existingNameGap, 72) }
