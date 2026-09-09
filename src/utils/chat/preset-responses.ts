@@ -15,7 +15,7 @@ export const PRESET_CHAT_RESPONSES: readonly PresetChatResponse[] = [
   },
   {
     question:
-      "What are the early signals form Lipfendra launch that our team should consider while revaluating Obi forecast?",
+      "What are the early signals from Lipfendra launch that our team should consider while revaluating Obi forecast?",
     answer: [
       "- **Uptake is slightly ahead of plan:** Lipfendra reached **10.4% NPS share vs. 10.0% forecast** by Dec’26, suggesting oral advanced-LLT adoption may be somewhat faster than assumed.",
       "- **Escalation is happening earlier:** Median time to escalation declined from roughly **8.5 to 7.6 months**, which could support a larger launch-ready patient pool for Obi.",
