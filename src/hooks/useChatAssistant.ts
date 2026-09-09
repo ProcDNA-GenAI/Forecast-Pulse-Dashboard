@@ -17,6 +17,10 @@ import {
   type RequestCost,
   type RoutingDecision,
 } from "@/utils/chat/types";
+import {
+  findPresetChatResponse,
+  PRESET_RESPONSE_DELAY_MS,
+} from "@/utils/chat/preset-responses";
 
 const welcomeMessage: ChatMessage = {
   id: "forecast-pulse-chat-welcome",
@@ -86,7 +90,9 @@ export function useChatAssistant() {
         return;
       }
 
-      if (!bootstrapData) {
+      const presetResponse = findPresetChatResponse(question);
+
+      if (!bootstrapData && !presetResponse) {
         setMessages((current) => [
           ...current,
           {
@@ -127,6 +133,31 @@ export function useChatAssistant() {
       requestRef.current = controller;
 
       try {
+        if (presetResponse) {
+          setActiveRoute(null);
+          await new Promise<void>((resolve) => {
+            window.setTimeout(resolve, PRESET_RESPONSE_DELAY_MS);
+          });
+          updateAssistant(assistantMessageId, (message) => ({
+            ...message,
+            content: presetResponse.answer,
+            status: "complete",
+            meta: {
+              sourceLabel: presetResponse.sourceLabel,
+              processingSteps: [],
+            },
+          }));
+          return;
+        }
+
+        if (!bootstrapData) {
+          failMessage(
+            assistantMessageId,
+            bootstrapError || "The Chat Assistant is still preparing its data sources. Please try again in a moment.",
+          );
+          return;
+        }
+
         let route: "COMPASS" | "DAE" | "BR" = "COMPASS";
         try {
           const classification = await classifyQuestion(
