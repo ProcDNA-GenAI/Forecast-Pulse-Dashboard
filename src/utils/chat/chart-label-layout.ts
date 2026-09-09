@@ -20,6 +20,11 @@ export type CategoryAxisLabelLayout = {
   width?: number;
 };
 
+export function horizontalBarLabelPosition(values: number[]): "left" | "right" {
+  const finite = values.filter((value) => Number.isFinite(value) && value !== 0);
+  return finite.length > 0 && finite.every((value) => value < 0) ? "left" : "right";
+}
+
 /** Show every label for compact category sets and wrap it within its available band. */
 export function categoryAxisLabelLayout(
   categoryCount: number,

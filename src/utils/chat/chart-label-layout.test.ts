@@ -10,6 +10,7 @@ import {
   CHART_GRID_TOP_PX,
   barLabelLayout,
   categoryAxisLabelLayout,
+  horizontalBarLabelPosition,
   niceValueAxisMaximum,
 } from "./chart-label-layout.ts";
 
@@ -85,6 +86,12 @@ test("positive value axes use clean tick ceilings", () => {
   assert.equal(niceValueAxisMaximum(0), 0);
 });
 
+test("horizontal bar labels follow the exposed end of negative bars", () => {
+  assert.equal(horizontalBarLabelPosition([-2.2, -1.2, -0.7]), "left");
+  assert.equal(horizontalBarLabelPosition([2.2, 1.2, 0.7]), "right");
+  assert.equal(horizontalBarLabelPosition([-2.2, 1.2]), "right");
+});
+
 test("compact category axes show every label within its available band", () => {
   const layout = categoryAxisLabelLayout(4, 510);
   assert.equal(layout.interval, 0);
@@ -133,6 +140,55 @@ test("competitor chart keeps all categories and its Y-axis title inside the canv
   const transform = axisTitle.getComputedTransform();
   if (transform) titleRect.applyTransform(transform);
   assert.ok(titleRect.x >= 0 && titleRect.x + titleRect.width <= viewport.width);
+  chart.dispose();
+});
+
+test("negative horizontal competitor bars keep titles, categories, and values visible", () => {
+  const viewport = { width: 466, height: 290 };
+  const categories = ["Ezetimibe", "Repatha", "Bempedoic", "Leqvio"];
+  const values = [-2.2, -1.2, -0.7, 0];
+  const chart = echarts.init(null, undefined, { renderer: "svg", ssr: true, ...viewport });
+  chart.setOption({
+    animation: false,
+    grid: { left: 84, right: 44, top: 40, bottom: CHART_GRID_BOTTOM_PX, containLabel: true },
+    xAxis: {
+      type: "value",
+      name: "Competitor Share Change Pp",
+      nameLocation: "middle",
+      nameGap: 48,
+      boundaryGap: ["12%", "12%"],
+    },
+    yAxis: {
+      type: "category",
+      name: "Competitor",
+      nameLocation: "middle",
+      nameGap: 104,
+      data: categories,
+      axisLabel: { hideOverlap: false, interval: 0, fontSize: 10 },
+    },
+    series: [{
+      type: "bar",
+      data: values,
+      label: {
+        show: true,
+        position: horizontalBarLabelPosition(values),
+        distance: BAR_LABEL_DISTANCE_PX,
+        formatter: ({ value }: { value: number }) => String(value),
+      },
+    }],
+  });
+
+  const displayList = chart.getZr().storage.getDisplayList();
+  [...categories, "Competitor", "Competitor Share Change Pp", "-2.2", "-1.2", "-0.7"].forEach((text) => {
+    const element = displayList.find((item) => (
+      item as unknown as { style?: { text?: unknown } }
+    ).style?.text === text);
+    assert.ok(element, `missing ${text}`);
+    const rect = element.getBoundingRect().clone();
+    const transform = element.getComputedTransform();
+    if (transform) rect.applyTransform(transform);
+    assert.ok(rect.x >= 0 && rect.y >= 0 && rect.x + rect.width <= viewport.width && rect.y + rect.height <= viewport.height, `${text} is clipped`);
+  });
   chart.dispose();
 });
 

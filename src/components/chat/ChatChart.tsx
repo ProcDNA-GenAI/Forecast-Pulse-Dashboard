@@ -12,6 +12,7 @@ import {
   CHART_GRID_TOP_PX,
   barLabelLayout,
   categoryAxisLabelLayout,
+  horizontalBarLabelPosition,
   niceValueAxisMaximum,
   type ChartViewport,
 } from "@/utils/chat/chart-label-layout";
@@ -77,6 +78,7 @@ function normalizeSeriesLabels(
   series: echarts.EChartsOption["series"],
   horizontalBar: boolean,
   viewport: ChartViewport,
+  option: echarts.EChartsOption,
 ) {
   if (!series) return series;
   const normalizeItem = (item: unknown) => {
@@ -89,8 +91,32 @@ function normalizeSeriesLabels(
     const supported = ["bar", "line", "scatter", "pie", "funnel", "treemap"].includes(type);
     if (!supported) return seriesItem;
 
+    const dataset = Array.isArray(option.dataset) ? option.dataset[0] : option.dataset;
+    const datasetSource = dataset && typeof dataset === "object" && "source" in dataset && Array.isArray(dataset.source)
+      ? dataset.source
+      : [];
+    const encode = (seriesItem.encode && typeof seriesItem.encode === "object"
+      ? seriesItem.encode
+      : {}) as Record<string, unknown>;
+    const valueKey = horizontalBar && typeof encode.x === "string" ? encode.x : undefined;
+    const ownedData = Array.isArray(seriesItem.data) ? seriesItem.data : [];
+    const values = (valueKey
+      ? datasetSource.map((row) => row && typeof row === "object" ? (row as Record<string, unknown>)[valueKey] : undefined)
+      : ownedData
+    ).flatMap((value) => {
+      const candidate = value && typeof value === "object" && "value" in value
+        ? (value as { value?: unknown }).value
+        : value;
+      if (typeof candidate === "number") return [candidate];
+      if (Array.isArray(candidate)) {
+        const number = [...candidate].reverse().find((item) => typeof item === "number");
+        return typeof number === "number" ? [number] : [];
+      }
+      return [];
+    });
+    const horizontalPosition = horizontalBarLabelPosition(values);
     const position = type === "bar"
-      ? isStacked ? "inside" : horizontalBar ? "right" : "top"
+      ? isStacked ? "inside" : horizontalBar ? horizontalPosition : "top"
       : type === "pie" ? "outside"
         : type === "funnel" || type === "treemap" ? "inside"
           : "top";
@@ -164,22 +190,27 @@ function normalizeChartOption(option: echarts.EChartsOption, viewport: ChartView
       ? { ...option.legend, top: 8, bottom: undefined }
       : undefined;
 
+  const horizontalBar = isHorizontalBar(option);
+
   const singleGrid = (!Array.isArray(option.grid) && option.grid ? option.grid : {}) as {
     left?: unknown;
+    right?: unknown;
     top?: unknown;
     bottom?: unknown;
   };
   const grid = Array.isArray(option.grid)
     ? option.grid.map((item) => ({
         ...item,
-        left: Math.max(typeof item.left === "number" ? item.left : 0, CHART_GRID_LEFT_PX),
+        left: Math.max(typeof item.left === "number" ? item.left : 0, horizontalBar ? 84 : CHART_GRID_LEFT_PX),
+        right: Math.max(typeof item.right === "number" ? item.right : 0, horizontalBar ? 44 : 18),
         top: Math.max(typeof item.top === "number" ? item.top : 0, CHART_GRID_TOP_PX),
         bottom: Math.max(typeof item.bottom === "number" ? item.bottom : 0, CHART_GRID_BOTTOM_PX),
         containLabel: true,
       }))
     : {
         ...(option.grid || {}),
-        left: Math.max(typeof singleGrid.left === "number" ? singleGrid.left : 0, CHART_GRID_LEFT_PX),
+        left: Math.max(typeof singleGrid.left === "number" ? singleGrid.left : 0, horizontalBar ? 84 : CHART_GRID_LEFT_PX),
+        right: Math.max(typeof singleGrid.right === "number" ? singleGrid.right : 0, horizontalBar ? 44 : 18),
         top: Math.max(typeof singleGrid.top === "number" ? singleGrid.top : 0, CHART_GRID_TOP_PX),
         bottom: Math.max(
           typeof singleGrid.bottom === "number" ? singleGrid.bottom : 0,
@@ -213,8 +244,10 @@ function normalizeChartOption(option: echarts.EChartsOption, viewport: ChartView
         : undefined;
       const categoryCount = axisData?.length
         || (Array.isArray(datasetSource) ? datasetSource.length : 0);
-      const categoryLabelPolicy = !isValueAxis && !isYAxis
-        ? categoryAxisLabelLayout(categoryCount, viewport.width)
+      const categoryLabelPolicy = !isValueAxis
+        ? isYAxis
+          ? { hideOverlap: false, interval: 0, fontSize: 10 }
+          : categoryAxisLabelLayout(categoryCount, viewport.width)
         : {};
 
       return {
@@ -231,10 +264,15 @@ function normalizeChartOption(option: echarts.EChartsOption, viewport: ChartView
         ...(isValueAxis && axisItem.max == null
           ? { max: ({ max }: { max: number }) => niceValueAxisMaximum(max) }
           : {}),
+        ...(horizontalBar && !isYAxis && isValueAxis && axisItem.boundaryGap == null
+          ? { boundaryGap: ["12%", "12%"] }
+          : {}),
         ...(isYAxis && axisItem.name
           ? {
               nameLocation: "middle",
-              nameGap: Math.min(Math.max(existingNameGap, 48), 58),
+              nameGap: isValueAxis
+                ? Math.min(Math.max(existingNameGap, 48), 58)
+                : Math.max(existingNameGap, 104),
               nameTextStyle: {
                 ...((axisItem.nameTextStyle && typeof axisItem.nameTextStyle === "object"
                   ? axisItem.nameTextStyle
@@ -258,14 +296,12 @@ function normalizeChartOption(option: echarts.EChartsOption, viewport: ChartView
     return Array.isArray(axis) ? axis.map(normalizeItem) : normalizeItem(axis);
   };
 
-  const horizontalBar = isHorizontalBar(option);
-
   return {
     ...option,
     title,
     legend,
     grid,
-    series: normalizeSeriesLabels(option.series, horizontalBar, viewport),
+    series: normalizeSeriesLabels(option.series, horizontalBar, viewport, option),
     xAxis: normalizeAxis(option.xAxis, false, horizontalBar) as echarts.EChartsOption["xAxis"],
     yAxis: normalizeAxis(option.yAxis, true, !horizontalBar) as echarts.EChartsOption["yAxis"],
   };
