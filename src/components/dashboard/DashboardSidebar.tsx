@@ -79,15 +79,23 @@ export function DashboardSidebar({ isExpanded, onToggle }: DashboardSidebarProps
         })}
         <button
           type="button"
-          title={!isExpanded ? "Market Access" : undefined}
-          className={`flex h-11 cursor-pointer items-center rounded-full text-white/85 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
+          title="Coming soon"
+          aria-describedby="market-access-coming-soon"
+          className={`group relative flex h-11 cursor-pointer items-center rounded-full text-white/85 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
             isExpanded ? "justify-center px-0 sm:justify-start sm:gap-3 sm:px-3" : "justify-center px-0"
           }`}
         >
-          <span aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />
+          <Image src="/MarketAccess.svg" alt="" width={20} height={20} className="h-5 w-5 shrink-0" />
           {isExpanded ? (
             <span className="hidden whitespace-nowrap text-xs font-medium sm:block">Market Access</span>
           ) : null}
+          <span
+            id="market-access-coming-soon"
+            role="tooltip"
+            className="pointer-events-none absolute left-1/2 top-[calc(100%+6px)] z-10 -translate-x-1/2 whitespace-nowrap rounded-md bg-primary-deep px-2 py-1 text-[10px] font-medium text-white opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+          >
+            Coming soon
+          </span>
         </button>
       </nav>
 

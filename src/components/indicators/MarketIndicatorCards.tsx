@@ -478,7 +478,7 @@ export function PrescriberGrowthCard({ points }: { points: PrescriberMonthlyPoin
       <div className="mt-1.5 overflow-x-auto">
         <table className="w-full min-w-[840px] border-separate border-spacing-0 text-xs tabular-nums">
           <thead>
-            <tr className="text-[10px] uppercase tracking-[0.03em] text-muted">
+            <tr className="text-[12px] tracking-[0.03em] text-muted">
               <th className="border-b border-border px-2 py-[7px] text-left">Month</th>
               <th className="border-b border-border px-2 py-[7px] text-right">Active Lipfendra Writers</th>
               <th className="border-b border-border px-2 py-[7px] text-right">Rx From Top 10% Writers</th>

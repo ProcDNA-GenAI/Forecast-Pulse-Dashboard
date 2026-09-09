@@ -47,6 +47,8 @@ const segmentGroupOrder: Record<SegmentGroup, number> = {
   ppno: 2,
 };
 
+const EXECUTIVE_TABLE_ACTUALS_LABEL = `Actuals (${ACTUALS_PERIOD})`;
+
 function MetricCard({
   label,
   value,
@@ -129,10 +131,10 @@ function MarketSection({ data }: { data: DashboardData }) {
         <div className="overflow-x-auto">
           <table className="mt-2.5 w-full min-w-[520px] border-collapse text-xs tabular-nums">
             <thead>
-              <tr className="text-[10px] uppercase tracking-[0.03em] text-muted">
+              <tr className="text-[12px] tracking-[0.03em] text-muted">
                 <th className="border-b border-[#f0efe9] px-2 py-1.5 text-left">Year</th>
                 <th className="border-b border-[#f0efe9] px-2 py-1.5 text-right">{FORECAST_LABEL}</th>
-                <th className="border-b border-[#f0efe9] px-2 py-1.5 text-right">{ACTUALS_LABEL}</th>
+                <th className="border-b border-[#f0efe9] px-2 py-1.5 text-right">{EXECUTIVE_TABLE_ACTUALS_LABEL}</th>
                 <th className="border-b border-[#f0efe9] px-2 py-1.5 text-right">Variance</th>
               </tr>
             </thead>
@@ -184,7 +186,7 @@ function PatientSection({ data }: { data: DashboardData }) {
         <CardHeader
           title={
             <>
-              {FORECAST_LABEL} segments vs {ACTUALS_LABEL}{" "}
+              {FORECAST_LABEL} segments vs {EXECUTIVE_TABLE_ACTUALS_LABEL}{" "}
               <span className="whitespace-nowrap text-[11px] font-semibold text-accent">
                 <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-accent" />
                 Major Movements
@@ -198,11 +200,11 @@ function PatientSection({ data }: { data: DashboardData }) {
         <div className="mt-1.5 overflow-x-auto">
           <table className="w-full min-w-[760px] border-separate border-spacing-0 text-xs tabular-nums">
             <thead>
-              <tr className="text-[10px] uppercase tracking-[0.03em] text-muted">
+              <tr className="text-[12px] tracking-[0.03em] text-muted">
                 <th className="border-b border-border px-2 py-[7px] text-left">Category</th>
                 <th className="border-b border-border px-2 py-[7px] text-left">Patient segment</th>
                 <th className="border-b border-border px-2 py-[7px] text-right">{FORECAST_LABEL}</th>
-                <th className="border-b border-border px-2 py-[7px] text-right">{ACTUALS_LABEL}</th>
+                <th className="border-b border-border px-2 py-[7px] text-right">{EXECUTIVE_TABLE_ACTUALS_LABEL}</th>
                 <th className="border-b border-border px-2 py-[7px] text-right">Change</th>
               </tr>
             </thead>
@@ -216,7 +218,6 @@ function PatientSection({ data }: { data: DashboardData }) {
                       {segmentGroupLabel(segment.group)}
                     </td>
                     <td className={`border-b border-[#f0efe9] px-2 py-1.5 text-left ${isMover ? "font-semibold" : ""}`}>
-                      {isMover ? <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-accent" /> : null}
                       {segment.name}
                     </td>
                     <td className="border-b border-[#f0efe9] px-2 py-1.5 text-right">{formatPercent(segment.forecast)}</td>
@@ -250,14 +251,14 @@ function AssumptionSection({ data }: { data: DashboardData }) {
     <>
       <SectionHeading emphasis="Are our launch assumptions holding?" />
       <DashboardCard>
-        <CardHeader title={`${FORECAST_LABEL} vs ${ACTUALS_LABEL}`} />
+        <CardHeader title={`${FORECAST_LABEL} vs ${EXECUTIVE_TABLE_ACTUALS_LABEL}`} />
         <div className="overflow-x-auto">
           <table className="mt-1.5 w-full min-w-[860px] border-separate border-spacing-0 text-[12.5px] tabular-nums">
             <thead>
-              <tr className="text-[10px] uppercase tracking-[0.03em] text-muted">
+              <tr className="text-[12px] tracking-[0.03em] text-muted">
                 <th className="border-b border-border px-[9px] py-[7px] text-left">Assumption (2026)</th>
                 <th className="border-b border-border px-[9px] py-[7px] text-right">{FORECAST_LABEL}</th>
-                <th className="border-b border-border px-[9px] py-[7px] text-right">{ACTUALS_LABEL}</th>
+                <th className="border-b border-border px-[9px] py-[7px] text-right">{EXECUTIVE_TABLE_ACTUALS_LABEL}</th>
                 <th className="border-b border-border px-[9px] py-[7px] text-right">Variance</th>
                 <th className="border-b border-border px-[9px] py-[7px] text-left">Source</th>
                 <th className="border-b border-border px-[9px] py-[7px] text-center">Status</th>
