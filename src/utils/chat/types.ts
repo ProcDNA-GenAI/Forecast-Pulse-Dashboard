@@ -127,7 +127,7 @@ export type RequestCost = {
 export type AssistantMessageMeta = {
   failed?: boolean;
   route?: RoutingDecision;
-  sourceLabel?: string;
+  loadingLabel?: string | null;
   sql?: string;
   charts?: ChartPayload[];
   chartGroups?: ChartGroup[];

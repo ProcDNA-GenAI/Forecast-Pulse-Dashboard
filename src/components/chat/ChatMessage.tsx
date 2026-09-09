@@ -148,8 +148,6 @@ function AssistantAnswer({ message, onAsk }: { message: ChatMessageModel; onAsk:
       ? [{ recommendedIndex: 0, variants: meta.charts }]
       : [];
   const hasRichContent = Boolean(meta?.streamingChart || chartGroups.length || meta?.resultTable);
-  const answerSourceLabel = meta?.sourceLabel
-    || (meta?.route === "DAE" ? "Market research" : meta?.route === "BR" ? "Business rules" : meta?.route ? "Connected data" : null);
 
   if (isDocumentAnswer && message.status === "streaming" && !formattedContent) {
     return (
@@ -175,6 +173,7 @@ function AssistantAnswer({ message, onAsk }: { message: ChatMessageModel; onAsk:
               <ChatProcessing
                 steps={meta?.processingSteps || []}
                 isStreaming={message.status === "streaming"}
+                streamingLabel={meta?.loadingLabel}
                 confidenceScore={meta?.confidenceScore}
                 confidenceReason={meta?.confidenceReason}
               />
@@ -239,7 +238,7 @@ function AssistantAnswer({ message, onAsk }: { message: ChatMessageModel; onAsk:
               <p className="mt-3 text-right text-[9px] font-medium text-muted">Request cost: ${meta.cost.total_usd.toFixed(4)}</p>
             ) : null}
           </div>
-          {answerSourceLabel ? <p className="mt-1 pl-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted">{answerSourceLabel}</p> : null}
+          {meta?.route ? <p className="mt-1 pl-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted">{meta.route === "DAE" ? "Market research" : meta.route === "BR" ? "Business rules" : "Connected data"}</p> : null}
         </div>
       </div>
       {citation ? <SourceReferenceModal chunk={citation.chunk} label={citation.label} onClose={() => setCitation(null)} /> : null}

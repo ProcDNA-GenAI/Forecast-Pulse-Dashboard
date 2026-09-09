@@ -19,7 +19,8 @@ import {
 } from "@/utils/chat/types";
 import {
   findPresetChatResponse,
-  PRESET_RESPONSE_DELAY_MS,
+  PRESET_LOADING_STAGE_MS,
+  PRESET_STREAM_INTERVAL_MS,
 } from "@/utils/chat/preset-responses";
 
 const welcomeMessage: ChatMessage = {
@@ -42,6 +43,16 @@ function mergeStep(steps: ProcessingStep[], nextStep: ProcessingStep) {
   return steps.map((step, index) =>
     index === existingIndex ? { ...step, ...nextStep } : step,
   );
+}
+
+function wait(milliseconds: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, milliseconds);
+  });
+}
+
+function presetAnswerTokens(answer: string) {
+  return answer.match(/\*\*[^*]+\*\*\s*|\S+\s*/g) || [answer];
 }
 
 export function useChatAssistant() {
@@ -135,17 +146,33 @@ export function useChatAssistant() {
       try {
         if (presetResponse) {
           setActiveRoute(null);
-          await new Promise<void>((resolve) => {
-            window.setTimeout(resolve, PRESET_RESPONSE_DELAY_MS);
-          });
+          await wait(PRESET_LOADING_STAGE_MS);
+          updateAssistant(assistantMessageId, (message) => ({
+            ...message,
+            meta: {
+              processingSteps: [],
+              loadingLabel: "Formulating your response",
+            },
+          }));
+          await wait(PRESET_LOADING_STAGE_MS);
+
+          let streamedAnswer = "";
+          for (const token of presetAnswerTokens(presetResponse.answer)) {
+            streamedAnswer += token;
+            updateAssistant(assistantMessageId, (message) => ({
+              ...message,
+              content: streamedAnswer,
+              status: "streaming",
+              meta: { processingSteps: [], loadingLabel: null },
+            }));
+            await wait(PRESET_STREAM_INTERVAL_MS);
+          }
+
           updateAssistant(assistantMessageId, (message) => ({
             ...message,
             content: presetResponse.answer,
             status: "complete",
-            meta: {
-              sourceLabel: presetResponse.sourceLabel,
-              processingSteps: [],
-            },
+            meta: { processingSteps: [], loadingLabel: null },
           }));
           return;
         }

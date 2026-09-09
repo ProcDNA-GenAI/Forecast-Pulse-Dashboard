@@ -100,7 +100,7 @@ export function ChatAssistantPanel({
       <header className="relative shrink-0 bg-white px-5 pb-4 pt-8 sm:px-6">
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
-            <h2 id="chat-assistant-title" className="text-lg font-bold text-primary">AI Chat Assistant</h2>
+            <h2 id="chat-assistant-title" className="text-lg font-bold text-primary">AI Assistant</h2>
           </div>
           <button type="button" onClick={onNewConversation} disabled={isSending} aria-label="Start a new conversation" title="New conversation" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-primary transition hover:bg-primary/7 disabled:cursor-not-allowed disabled:opacity-40">
             <MessageSquarePlus className="h-[18px] w-[18px]" aria-hidden="true" />

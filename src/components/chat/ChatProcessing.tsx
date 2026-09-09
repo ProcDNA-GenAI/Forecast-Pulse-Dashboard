@@ -70,11 +70,13 @@ export function DocumentProcessing({ steps }: { steps: ProcessingStep[] }) {
 export function ChatProcessing({
   steps,
   isStreaming,
+  streamingLabel,
   confidenceScore,
   confidenceReason,
 }: {
   steps: ProcessingStep[];
   isStreaming: boolean;
+  streamingLabel?: string | null;
   confidenceScore?: number | null;
   confidenceReason?: string | null;
 }) {
@@ -86,10 +88,10 @@ export function ChatProcessing({
   }, [isStreaming]);
 
   if (!steps.length) {
-    return isStreaming ? (
+    return isStreaming && streamingLabel !== null ? (
       <div className="mb-2 inline-flex items-center gap-2 text-xs font-semibold text-muted">
         <ThinkingDots />
-        Thinking
+        {streamingLabel || "Thinking"}
       </div>
     ) : null;
   }
