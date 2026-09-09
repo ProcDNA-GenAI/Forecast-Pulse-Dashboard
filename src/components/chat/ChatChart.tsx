@@ -199,6 +199,12 @@ function normalizeChartOption(option: echarts.EChartsOption, viewport: ChartView
       const axisLabel = (axisItem.axisLabel && typeof axisItem.axisLabel === "object"
         ? axisItem.axisLabel
         : {}) as Record<string, unknown>;
+      const axisLine = (axisItem.axisLine && typeof axisItem.axisLine === "object"
+        ? axisItem.axisLine
+        : {}) as Record<string, unknown>;
+      const axisLineStyle = (axisLine.lineStyle && typeof axisLine.lineStyle === "object"
+        ? axisLine.lineStyle
+        : {}) as Record<string, unknown>;
       const existingNameGap = typeof axisItem.nameGap === "number" ? axisItem.nameGap : 0;
       const axisData = Array.isArray(axisItem.data) ? axisItem.data : undefined;
       const dataset = Array.isArray(option.dataset) ? option.dataset[0] : option.dataset;
@@ -234,6 +240,15 @@ function normalizeChartOption(option: echarts.EChartsOption, viewport: ChartView
                   ? axisItem.nameTextStyle
                   : {}) as Record<string, unknown>),
                 fontSize: 10,
+              },
+            }
+          : {}),
+        ...(isYAxis
+          ? {
+              axisLine: {
+                ...axisLine,
+                show: true,
+                lineStyle: { ...axisLineStyle, color: "#5f636a", width: 1 },
               },
             }
           : {}),
@@ -292,17 +307,19 @@ function ChartCanvas({ chart, containerRef }: { chart: ChartPayload; containerRe
     };
   }, [chart, containerRef]);
 
-  return <div ref={containerRef} className="h-[290px] w-full" role="img" aria-label={chart.title || `${chart.kind} chart`} />;
+  return <div ref={containerRef} data-chart-canvas className="h-[290px] w-full" role="img" aria-label={chart.title || `${chart.kind} chart`} />;
 }
 
 export function ChatChartGroup({
   group,
   messageId,
   groupIndex = 0,
+  allGroups,
 }: {
   group: ChartGroup;
   messageId?: number;
   groupIndex?: number;
+  allGroups?: ChartGroup[];
 }) {
   const [selectedIndex, setSelectedIndex] = useState(
     Math.min(Math.max(group.recommendedIndex, 0), group.variants.length - 1),
@@ -336,12 +353,28 @@ export function ChatChartGroup({
     setIsDownloadingPptx(true);
     try {
       const chartImageDataUrl = getChartPngDataUrl(chartElementRef.current, 3);
+      const slides = (allGroups || [group]).flatMap((slideGroup, slideGroupIndex) => {
+        const section = document.querySelector<HTMLElement>(
+          `[data-chart-message-id="${messageId}"][data-chart-group-index="${slideGroupIndex}"]`,
+        );
+        const canvas = section?.querySelector<HTMLDivElement>("[data-chart-canvas]") || null;
+        const visibleIndex = Number(section?.dataset.chartIndex || slideGroup.recommendedIndex || 0);
+        const visibleChart = slideGroup.variants[visibleIndex];
+        if (!visibleChart || !canvas) return [];
+        return [{
+          chartGroupIndex: slideGroupIndex,
+          chartIndex: visibleIndex,
+          chart: visibleChart,
+          chartImageDataUrl: getChartPngDataUrl(canvas, 3),
+        }];
+      });
       await downloadChartPptx({
         messageId,
         chartGroupIndex: groupIndex,
         chartIndex: selectedIndex,
         chart,
         chartImageDataUrl,
+        slides,
       });
     } catch (error) {
       setDownloadError(error instanceof Error ? error.message : "Unable to download PowerPoint.");
@@ -351,7 +384,12 @@ export function ChatChartGroup({
   };
 
   return (
-    <section className="mt-3 overflow-hidden rounded-xl border border-primary/10 bg-surface shadow-sm">
+    <section
+      data-chart-message-id={messageId}
+      data-chart-group-index={groupIndex}
+      data-chart-index={selectedIndex}
+      className="mt-3 overflow-hidden rounded-xl border border-primary/10 bg-surface shadow-sm"
+    >
       <div className="flex flex-wrap items-center gap-2 border-b border-primary/10 px-3 py-2.5">
         <BarChart3 className="h-4 w-4 shrink-0 text-secondary" aria-hidden="true" />
         <div className="min-w-0 flex-1">
