@@ -134,7 +134,7 @@ function MarketSection({ data }: { data: DashboardData }) {
               <tr className="text-[12px] tracking-[0.03em] text-muted">
                 <th className="border-b border-[#f0efe9] px-2 py-1.5 text-left">Year</th>
                 <th className="border-b border-[#f0efe9] px-2 py-1.5 text-right">{FORECAST_LABEL}</th>
-                <th className="border-b border-[#f0efe9] px-2 py-1.5 text-right">{EXECUTIVE_TABLE_ACTUALS_LABEL}</th>
+                <th className="border-b border-[#f0efe9] px-2 py-1.5 text-right">{ACTUALS_LABEL}</th>
                 <th className="border-b border-[#f0efe9] px-2 py-1.5 text-right">Variance</th>
               </tr>
             </thead>
