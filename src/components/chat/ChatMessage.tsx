@@ -184,6 +184,7 @@ function AssistantAnswer({ message, onAsk }: { message: ChatMessageModel; onAsk:
                 key={`${group.title || "chart"}-${index}`}
                 group={group}
                 groupIndex={index}
+                allGroups={chartGroups}
                 messageId={message.backendId}
               />
             ))}

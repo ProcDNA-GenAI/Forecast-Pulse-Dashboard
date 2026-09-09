@@ -85,12 +85,19 @@ export async function downloadChartPptx({
   chartIndex,
   chart,
   chartImageDataUrl,
+  slides,
 }: {
   messageId: number;
   chartGroupIndex: number;
   chartIndex: number;
   chart: ChartPayload;
   chartImageDataUrl?: string;
+  slides?: Array<{
+    chartGroupIndex: number;
+    chartIndex: number;
+    chart: ChartPayload;
+    chartImageDataUrl?: string;
+  }>;
 }) {
   const response = await fetchWithSession(apiUrl(`/dashboard/messages/${messageId}/export-pptx`), {
     method: "POST",
@@ -103,6 +110,12 @@ export async function downloadChartPptx({
       chart_index: chartIndex,
       chart,
       chart_image_data_url: chartImageDataUrl,
+      slides: slides?.map((slide) => ({
+        chart_group_index: slide.chartGroupIndex,
+        chart_index: slide.chartIndex,
+        chart: slide.chart,
+        chart_image_data_url: slide.chartImageDataUrl,
+      })),
     }),
   });
 
